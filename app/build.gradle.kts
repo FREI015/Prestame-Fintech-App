@@ -1,4 +1,12 @@
-﻿plugins {
+﻿import java.util.Properties
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
@@ -20,13 +28,28 @@ android {
             useSupportLibrary = true
         }
     }
-
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+            }
+        }
+    }
     buildTypes {
         debug {
             isMinifyEnabled = false
         }
 
         release {
+
+            if (keystorePropertiesFile.exists()) {
+
+                signingConfig = signingConfigs.getByName("release")
+
+            }
             isMinifyEnabled = false
             isShrinkResources = false
 
@@ -89,6 +112,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
 
 
 

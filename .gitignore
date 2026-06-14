@@ -64,3 +64,4 @@ Auditoria_Registro.txt
 !gradle.properties
 !docs/
 !docs/qa/
+_secure_local/
