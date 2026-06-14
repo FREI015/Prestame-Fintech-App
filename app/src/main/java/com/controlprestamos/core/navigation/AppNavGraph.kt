@@ -4,7 +4,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.Lifecycle
 import androidx.compose.runtime.DisposableEffect
-import com.controlprestamos.features.security.presentation.AppLockScreen
 import com.controlprestamos.features.security.data.LocalSecurityRepository
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
@@ -109,10 +108,10 @@ fun AppNavGraph() {
 
                     if (
                         shouldLock &&
-                        currentRoute != AppRoute.AppLock.route &&
                         currentRoute != AppRoute.Login.route
                     ) {
-                        navController.navigate(AppRoute.AppLock.route) {
+                        navController.navigate(AppRoute.Login.route) {
+                            popUpTo(0)
                             launchSingleTop = true
                         }
                     }
@@ -137,12 +136,15 @@ fun AppNavGraph() {
         startDestination = appLockStartDestination
     ) {
         composable(AppRoute.AppLock.route) {
-            AppLockScreen(
-                onUnlocked = {
+            LoginScreen(
+                onLoginSuccess = {
                     navController.navigate(AppRoute.Dashboard.route) {
                         popUpTo(0)
                         launchSingleTop = true
                     }
+                },
+                onNavigateToRegister = {
+                    navController.navigate(AppRoute.Register.route)
                 }
             )
         }
@@ -597,6 +599,8 @@ fun AppNavGraph() {
         }
     }
 }
+
+
 
 
 

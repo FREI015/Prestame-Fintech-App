@@ -127,13 +127,13 @@ fun LoginScreen(
                     contentDescription = "Fondo premium login",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
-                    alpha = 0.18f
+                    alpha = 0.34f
                 )
 
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(AppColors.Background.copy(alpha = 0.90f))
+                        .background(AppColors.Background.copy(alpha = 0.82f))
                 )
 
                 Column(
@@ -151,7 +151,7 @@ fun LoginScreen(
                             .background(AppColors.PrimaryDark.copy(alpha = 0.08f))
                             .border(
                                 width = 1.dp,
-                                color = AppColors.AccentTeal.copy(alpha = 0.30f),
+                                color = AppColors.AccentTeal.copy(alpha = 0.34f),
                                 shape = CircleShape
                             ),
                         contentAlignment = Alignment.Center
@@ -571,4 +571,5 @@ private fun AccessMethodButton(
         }
     }
 }
+
 
