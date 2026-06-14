@@ -32,7 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -119,256 +119,274 @@ fun LoginScreen(
                 .padding(innerPadding),
             color = AppColors.Background
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+            Box(
+                modifier = Modifier.fillMaxSize()
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.login_bg_premium),
+                    contentDescription = "Fondo premium login",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.18f
+                )
+
                 Box(
                     modifier = Modifier
-                        .size(148.dp)
-                        .clip(CircleShape)
-                        .background(AppColors.PrimaryDark.copy(alpha = 0.06f))
-                        .border(
-                            width = 1.dp,
-                            color = AppColors.AccentTeal.copy(alpha = 0.28f),
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .background(AppColors.Background.copy(alpha = 0.90f))
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_auth_hero),
-                        contentDescription = "Control Préstamos",
-                        modifier = Modifier.size(118.dp)
-                    )
-                }
+                    Box(
+                        modifier = Modifier
+                            .size(148.dp)
+                            .clip(CircleShape)
+                            .background(AppColors.PrimaryDark.copy(alpha = 0.08f))
+                            .border(
+                                width = 1.dp,
+                                color = AppColors.AccentTeal.copy(alpha = 0.30f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_auth_hero),
+                            contentDescription = "Control Préstamos",
+                            modifier = Modifier.size(118.dp)
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(18.dp))
-
-                Text(
-                    text = "Control Préstamos",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = AppColors.Gray900
-                )
-
-                Text(
-                    text = "Gestiona. Controla. Haz crecer tu negocio.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppColors.Gray600
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = if (hasAccount) {
-                        "Acceso seguro a tu cartera"
-                    } else {
-                        "Crea tu cuenta principal para proteger tus datos"
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppColors.AccentTeal
-                )
-
-                if (hasAccount && registeredEmail.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     Text(
-                        text = registeredEmail,
+                        text = "Control Préstamos",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.Gray900
+                    )
+
+                    Text(
+                        text = "Gestiona. Controla. Haz crecer tu negocio.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = AppColors.Gray600,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                if (hasAccount) {
-                    PremiumAccessCard(
-                        selectedMode = accessMode,
-                        hasPin = securitySettings.hasPin,
-                        biometricEnabled = securitySettings.biometricEnabled,
-                        biometricAvailable = biometricAvailable,
-                        biometricLabel = biometricLabel,
-                        onSelectPassword = {
-                            accessMode = LoginAccessMode.PASSWORD
-                            formMessage = null
-                        },
-                        onSelectPin = {
-                            accessMode = LoginAccessMode.PIN
-                            formMessage = null
-                        },
-                        onBiometric = {
-                            launchBiometricAuthentication(
-                                context = context,
-                                onSuccess = {
-                                    completeTrustedAccess()
-                                },
-                                onError = { error ->
-                                    formMessage = error
-                                }
-                            )
-                        }
+                        color = AppColors.Gray600
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                AppCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    bordered = true
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = if (accessMode == LoginAccessMode.PIN && hasAccount) {
-                                "Desbloqueo con PIN"
-                            } else {
-                                "Acceso con correo"
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = AppColors.Gray900
-                        )
-
-                        Text(
-                            text = if (accessMode == LoginAccessMode.PIN && hasAccount) {
-                                "Ingresa tu PIN de seguridad para volver a la aplicación."
-                            } else {
-                                "Ingresa tus credenciales principales para acceder."
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AppColors.Gray600
-                        )
-
-                        if (accessMode == LoginAccessMode.PASSWORD || !hasAccount) {
-                            AppTextField(
-                                value = email,
-                                onValueChange = {
-                                    email = it.trim()
-                                    formMessage = null
-                                },
-                                label = "Correo electrónico",
-                                modifier = Modifier.fillMaxWidth(),
-                                keyboardType = KeyboardType.Email,
-                                enabled = !hasAccount || registeredEmail.isBlank()
-                            )
-
-                            AppTextField(
-                                value = password,
-                                onValueChange = {
-                                    password = it
-                                    formMessage = null
-                                },
-                                label = "Contraseña",
-                                modifier = Modifier.fillMaxWidth(),
-                                keyboardType = KeyboardType.Password,
-                                visualTransformation = PasswordVisualTransformation()
-                            )
-
-                            AppPrimaryButton(
-                                text = "Iniciar sesión",
-                                onClick = {
-                                    val validation = AuthValidators.validateLogin(
-                                        email = email,
-                                        password = password
-                                    )
-
-                                    if (validation != null) {
-                                        formMessage = validation
-                                        return@AppPrimaryButton
-                                    }
-
-                                    val result = LocalAuthRepository.authenticate(
-                                        context = context,
-                                        email = email,
-                                        password = password
-                                    )
-
-                                    if (result.success) {
-                                        LocalSecurityRepository.markUnlocked(context)
-                                        password = ""
-                                        formMessage = null
-                                        onLoginSuccess()
-                                    } else {
-                                        formMessage = result.message
-                                    }
-                                }
-                            )
+                    Text(
+                        text = if (hasAccount) {
+                            "Acceso seguro a tu cartera"
                         } else {
-                            AppTextField(
-                                value = pin,
-                                onValueChange = {
-                                    pin = it.filter { char -> char.isDigit() }.take(6)
-                                    formMessage = null
-                                },
-                                label = "PIN de seguridad",
-                                modifier = Modifier.fillMaxWidth(),
-                                keyboardType = KeyboardType.NumberPassword,
-                                visualTransformation = PasswordVisualTransformation()
-                            )
+                            "Crea tu cuenta principal para proteger tus datos"
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppColors.AccentTeal
+                    )
 
-                            AppPrimaryButton(
-                                text = "Entrar con PIN",
-                                onClick = {
-                                    val validation = AuthValidators.validatePin(pin)
+                    if (hasAccount && registeredEmail.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(6.dp))
 
-                                    if (validation != null) {
-                                        formMessage = validation
-                                        return@AppPrimaryButton
-                                    }
+                        Text(
+                            text = registeredEmail,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AppColors.Gray600,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
 
-                                    if (LocalSecurityRepository.validatePin(context, pin)) {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    if (hasAccount) {
+                        PremiumAccessCard(
+                            selectedMode = accessMode,
+                            hasPin = securitySettings.hasPin,
+                            biometricEnabled = securitySettings.biometricEnabled,
+                            biometricAvailable = biometricAvailable,
+                            biometricLabel = biometricLabel,
+                            onSelectPassword = {
+                                accessMode = LoginAccessMode.PASSWORD
+                                formMessage = null
+                            },
+                            onSelectPin = {
+                                accessMode = LoginAccessMode.PIN
+                                formMessage = null
+                            },
+                            onBiometric = {
+                                launchBiometricAuthentication(
+                                    context = context,
+                                    onSuccess = {
                                         completeTrustedAccess()
-                                    } else {
-                                        formMessage = "PIN incorrecto."
+                                    },
+                                    onError = { error ->
+                                        formMessage = error
                                     }
-                                }
-                            )
-                        }
-
-                        SecondaryButton(
-                            text = "Continuar con Google",
-                            onClick = {
-                                formMessage = GoogleAuthCoordinator.userFacingMessage()
+                                )
                             }
                         )
 
-                        if (!formMessage.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    AppCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        bordered = true
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                             Text(
-                                text = formMessage.orEmpty(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (
-                                    formMessage.orEmpty().contains("correcto", ignoreCase = true) ||
-                                    formMessage.orEmpty().contains("autorizado", ignoreCase = true)
-                                ) {
-                                    AppColors.Success
+                                text = if (accessMode == LoginAccessMode.PIN && hasAccount) {
+                                    "Desbloqueo con PIN"
                                 } else {
-                                    MaterialTheme.colorScheme.error
+                                    "Acceso con correo"
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = AppColors.Gray900
+                            )
+
+                            Text(
+                                text = if (accessMode == LoginAccessMode.PIN && hasAccount) {
+                                    "Ingresa tu PIN de seguridad para volver a la aplicación."
+                                } else {
+                                    "Ingresa tus credenciales principales para acceder."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AppColors.Gray600
+                            )
+
+                            if (accessMode == LoginAccessMode.PASSWORD || !hasAccount) {
+                                AppTextField(
+                                    value = email,
+                                    onValueChange = {
+                                        email = it.trim()
+                                        formMessage = null
+                                    },
+                                    label = "Correo electrónico",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    keyboardType = KeyboardType.Email,
+                                    enabled = !hasAccount || registeredEmail.isBlank()
+                                )
+
+                                AppTextField(
+                                    value = password,
+                                    onValueChange = {
+                                        password = it
+                                        formMessage = null
+                                    },
+                                    label = "Contraseña",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    keyboardType = KeyboardType.Password,
+                                    visualTransformation = PasswordVisualTransformation()
+                                )
+
+                                AppPrimaryButton(
+                                    text = "Iniciar sesión",
+                                    onClick = {
+                                        val validation = AuthValidators.validateLogin(
+                                            email = email,
+                                            password = password
+                                        )
+
+                                        if (validation != null) {
+                                            formMessage = validation
+                                            return@AppPrimaryButton
+                                        }
+
+                                        val result = LocalAuthRepository.authenticate(
+                                            context = context,
+                                            email = email,
+                                            password = password
+                                        )
+
+                                        if (result.success) {
+                                            LocalSecurityRepository.markUnlocked(context)
+                                            password = ""
+                                            formMessage = null
+                                            onLoginSuccess()
+                                        } else {
+                                            formMessage = result.message
+                                        }
+                                    }
+                                )
+                            } else {
+                                AppTextField(
+                                    value = pin,
+                                    onValueChange = {
+                                        pin = it.filter { char -> char.isDigit() }.take(6)
+                                        formMessage = null
+                                    },
+                                    label = "PIN de seguridad",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    keyboardType = KeyboardType.NumberPassword,
+                                    visualTransformation = PasswordVisualTransformation()
+                                )
+
+                                AppPrimaryButton(
+                                    text = "Entrar con PIN",
+                                    onClick = {
+                                        val validation = AuthValidators.validatePin(pin)
+
+                                        if (validation != null) {
+                                            formMessage = validation
+                                            return@AppPrimaryButton
+                                        }
+
+                                        if (LocalSecurityRepository.validatePin(context, pin)) {
+                                            completeTrustedAccess()
+                                        } else {
+                                            formMessage = "PIN incorrecto."
+                                        }
+                                    }
+                                )
+                            }
+
+                            SecondaryButton(
+                                text = "Continuar con Google",
+                                onClick = {
+                                    formMessage = GoogleAuthCoordinator.userFacingMessage()
                                 }
                             )
+
+                            if (!formMessage.isNullOrBlank()) {
+                                Text(
+                                    text = formMessage.orEmpty(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (
+                                        formMessage.orEmpty().contains("correcto", ignoreCase = true) ||
+                                        formMessage.orEmpty().contains("autorizado", ignoreCase = true)
+                                    ) {
+                                        AppColors.Success
+                                    } else {
+                                        MaterialTheme.colorScheme.error
+                                    }
+                                )
+                            }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                TextButton(
-                    onClick = onNavigateToRegister,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = if (hasAccount) {
-                            "Administrar / crear cuenta"
-                        } else {
-                            "Crear cuenta"
-                        }
-                    )
+                    TextButton(
+                        onClick = onNavigateToRegister,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = if (hasAccount) {
+                                "Administrar / crear cuenta"
+                            } else {
+                                "Crear cuenta"
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -553,3 +571,4 @@ private fun AccessMethodButton(
         }
     }
 }
+
