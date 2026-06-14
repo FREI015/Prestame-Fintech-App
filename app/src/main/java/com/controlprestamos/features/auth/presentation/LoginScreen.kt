@@ -80,21 +80,10 @@ fun LoginScreen(
         )
     }
 
-    var email by rememberSaveable {
-        mutableStateOf(registeredEmail)
-    }
-
-    var password by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var pin by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var formMessage by rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
+    var email by rememberSaveable { mutableStateOf(registeredEmail) }
+    var password by rememberSaveable { mutableStateOf("") }
+    var pin by rememberSaveable { mutableStateOf("") }
+    var formMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     fun completeTrustedAccess() {
         val result = LocalAuthRepository.unlockWithTrustedAuth(context)
@@ -127,13 +116,13 @@ fun LoginScreen(
                     contentDescription = "Fondo premium login",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
-                    alpha = 0.34f
+                    alpha = 0.40f
                 )
 
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(AppColors.Background.copy(alpha = 0.82f))
+                        .background(AppColors.Background.copy(alpha = 0.76f))
                 )
 
                 Column(
@@ -148,7 +137,7 @@ fun LoginScreen(
                         modifier = Modifier
                             .size(148.dp)
                             .clip(CircleShape)
-                            .background(AppColors.PrimaryDark.copy(alpha = 0.08f))
+                            .background(AppColors.PrimaryDark.copy(alpha = 0.10f))
                             .border(
                                 width = 1.dp,
                                 color = AppColors.AccentTeal.copy(alpha = 0.34f),
@@ -458,7 +447,7 @@ private fun PremiumAccessCard(
 
                 if (hasPin) {
                     AccessMethodButton(
-                        icon = "●●",
+                        icon = "🔐",
                         title = "PIN",
                         subtitle = "Rápido",
                         selected = selectedMode == LoginAccessMode.PIN,
@@ -470,7 +459,7 @@ private fun PremiumAccessCard(
 
                 if (biometricEnabled) {
                     AccessMethodButton(
-                        icon = "◉",
+                        icon = "👆",
                         title = "Huella",
                         subtitle = "Biometría",
                         selected = false,
@@ -543,7 +532,7 @@ private fun AccessMethodButton(
         ) {
             Box(
                 modifier = Modifier
-                    .size(38.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .background(contentColor.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
@@ -571,5 +560,3 @@ private fun AccessMethodButton(
         }
     }
 }
-
-
