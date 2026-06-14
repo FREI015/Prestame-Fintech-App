@@ -1,29 +1,39 @@
 ﻿package com.controlprestamos.features.loans.presentation
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import com.controlprestamos.core.ui.components.AppCard
-import com.controlprestamos.core.ui.components.AppStatus
+import androidx.compose.ui.unit.dp
 import com.controlprestamos.core.ui.components.AppTopBar
-import com.controlprestamos.core.ui.components.EmptyState
-import com.controlprestamos.core.ui.components.PrimaryButton
-import com.controlprestamos.core.ui.components.SecondaryButton
-import com.controlprestamos.core.ui.components.StatusChip
+import com.controlprestamos.core.ui.components.ClientAvatar
 import com.controlprestamos.core.ui.theme.AppColors
+import com.controlprestamos.core.ui.theme.AppRadius
 import com.controlprestamos.core.ui.theme.AppSpacing
 import com.controlprestamos.features.clients.data.LocalClientRepository
 import com.controlprestamos.features.installments.data.LocalInstallmentRepository
@@ -33,6 +43,8 @@ import com.controlprestamos.features.loans.data.LocalLoanRepository
 import com.controlprestamos.features.loans.domain.model.Loan
 import com.controlprestamos.features.loans.domain.model.LoanStatus
 import com.controlprestamos.features.payments.data.LocalPaymentRepository
+import com.controlprestamos.features.payments.domain.model.Payment
+import com.controlprestamos.features.payments.domain.model.PaymentStatus
 import com.controlprestamos.features.preferences.data.LocalPreferencesRepository
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
@@ -40,29 +52,30 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.max
 
-private var screenCurrencySymbol = "$"
-
 @Composable
 fun LoanDetailScreen(
     loanId: String,
     onNavigateBack: () -> Unit,
-    onCreatePayment: () -> Unit,
-    onOpenPayments: () -> Unit,
-    onEditLoan: () -> Unit = {}
+    onEditLoan: () -> Unit = {},
+    onCreatePayment: () -> Unit = {},
+    onOpenClient: (String) -> Unit = {},
+    onOpenClientDetail: (String) -> Unit = onOpenClient,
+    onOpenPaymentsByLoan: (String) -> Unit = {},
+    onOpenPayments: () -> Unit = { onOpenPaymentsByLoan(loanId) },
+    onCancelLoan: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val preferences = LocalPreferencesRepository.getPreferences(context)
-    screenCurrencySymbol = preferences.currencySymbol
-
     val loan = LocalLoanRepository.getLoanById(loanId)
-    val client = loan?.let { LocalClientRepository.getClientById(it.clientId) }
+    val preferences = LocalPreferencesRepository.getPreferences(
+        context = LocalContext.current
+    )
 
     Scaffold(
         topBar = {
             AppTopBar(
-                title = "Detalle del préstamo",
-                subtitle = client?.fullName ?: "Préstamo no encontrado",
+                title = "Préstamo",
+                subtitle = loan?.description?.ifBlank { "Detalle financiero" } ?: "No encontrado",
                 showBack = true,
+                showNotifications = false,
                 onBack = onNavigateBack
             )
         },
@@ -81,484 +94,917 @@ fun LoanDetailScreen(
                     .padding(AppSpacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
+                Spacer(modifier = Modifier.height(AppSpacing.xs))
+
                 if (loan == null) {
-                    EmptyState(
-                        title = "Préstamo no encontrado",
-                        description = "No pudimos encontrar el préstamo solicitado.",
-                        action = {
-                            SecondaryButton(
-                                text = "Volver",
-                                onClick = onNavigateBack
-                            )
-                        }
+                    LoanNotFoundCard(
+                        onNavigateBack = onNavigateBack
                     )
 
                     return@Column
                 }
 
-                val installments = getOrCreateInstallments(loan)
-                val totalPaid = LocalPaymentRepository.getTotalPaidByLoan(loan.id)
-                val remainingAmount = max(loan.totalExpectedAmount - totalPaid, 0.0)
-                val pendingInstallments = installments.filter {
-                    it.status == InstallmentStatus.PENDING ||
-                        it.status == InstallmentStatus.PARTIAL ||
-                        it.status == InstallmentStatus.OVERDUE
-                }
-                val overdueInstallments = installments.filter {
-                    it.status == InstallmentStatus.OVERDUE
-                }
-                val paidInstallments = installments.filter {
-                    it.status == InstallmentStatus.PAID
-                }
-                val nextInstallment = pendingInstallments
-                    .filter { it.pendingAmount > 0.0 }
-                    .minByOrNull { it.dueDateMillis }
-
-                val status = resolveLoanStatus(
+                val state = buildLoanDetailState(
                     loan = loan,
-                    remainingAmount = remainingAmount,
-                    overdueCount = overdueInstallments.size
+                    currencySymbol = preferences.currencySymbol
                 )
 
-                LoanHeaderCard(
-                    loan = loan,
-                    clientName = client?.fullName ?: "Cliente no encontrado",
-                    clientPhone = client?.phone.orEmpty(),
-                    totalPaid = totalPaid,
-                    remainingAmount = remainingAmount,
-                    status = status
+                LoanClientHeader(
+                    state = state,
+                    onOpenClient = { onOpenClientDetail(loan.clientId) }
                 )
 
-                LoanActionButtons(
-                    loan = loan,
-                    remainingAmount = remainingAmount,
+                LoanFinancialCard(
+                    state = state
+                )
+
+                LoanDetailActions(
+                    state = state,
                     onCreatePayment = onCreatePayment,
-                    onOpenPayments = onOpenPayments,
-                    onEditLoan = onEditLoan
+                    onEditLoan = onEditLoan,
+                    onOpenPaymentsByLoan = onOpenPayments
                 )
 
-                LoanCalendarSummaryCard(
-                    loan = loan,
-                    installments = installments,
-                    nextInstallment = nextInstallment,
-                    overdueCount = overdueInstallments.size,
-                    paidCount = paidInstallments.size,
-                    pendingCount = pendingInstallments.size
+                LoanInstallmentsCard(
+                    installments = state.installmentRows
                 )
 
-                LoanMoneySummaryCard(
-                    loan = loan,
-                    totalPaid = totalPaid,
-                    remainingAmount = remainingAmount
+                LoanPaymentsCard(
+                    payments = state.paymentRows
                 )
 
-                LoanInstallmentsPreviewCard(
-                    installments = installments
-                )
-
-                LoanInfoCard(
-                    title = "Descripción",
-                    value = loan.description.ifBlank { "Sin descripción" }
-                )
+                Spacer(modifier = Modifier.height(AppSpacing.md))
             }
         }
     }
 }
 
 @Composable
-private fun LoanHeaderCard(
-    loan: Loan,
-    clientName: String,
-    clientPhone: String,
-    totalPaid: Double,
-    remainingAmount: Double,
-    status: AppStatus
+private fun LoanNotFoundCard(
+    onNavigateBack: () -> Unit
 ) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ReferenceCard {
+        Text(
+            text = "Préstamo no encontrado",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Text(
+            text = "No pudimos encontrar el préstamo solicitado.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppColors.Gray600
+        )
+
+        DetailActionButton(
+            text = "Volver",
+            color = AppColors.PrimaryDark,
+            onClick = onNavigateBack,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun LoanClientHeader(
+    state: LoanDetailState,
+    onOpenClient: () -> Unit
+) {
+    ReferenceCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            ClientAvatar(
+                fullName = state.clientName,
+                size = 58.dp
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
-                ) {
-                    Text(
-                        text = clientName,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = AppColors.Gray900
-                    )
-
-                    if (clientPhone.isNotBlank()) {
-                        Text(
-                            text = clientPhone,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AppColors.Gray600
-                        )
-                    }
-
-                    Text(
-                        text = "Inicio: ${formatDate(loan.startDateMillis)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AppColors.Gray600
-                    )
-                }
-
-                StatusChip(status = status)
-            }
-
-            SummaryRow(
-                label = "Saldo pendiente",
-                value = formatMoney(remainingAmount),
-                highlight = true
-            )
-
-            SummaryRow(
-                label = "Pagado",
-                value = formatMoney(totalPaid)
-            )
-        }
-    }
-}
-
-@Composable
-private fun LoanActionButtons(
-    loan: Loan,
-    remainingAmount: Double,
-    onCreatePayment: () -> Unit,
-    onOpenPayments: () -> Unit,
-    onEditLoan: () -> Unit
-) {
-    val canReceivePayment = loan.status != LoanStatus.CANCELLED && remainingAmount > 0.0
-
-    PrimaryButton(
-        text = "Registrar pago",
-        enabled = canReceivePayment,
-        onClick = onCreatePayment
-    )
-
-    SecondaryButton(
-        text = "Ver historial de pagos",
-        onClick = onOpenPayments
-    )
-
-    SecondaryButton(
-        text = "Editar préstamo",
-        enabled = loan.status != LoanStatus.CANCELLED,
-        onClick = onEditLoan
-    )
-}
-
-@Composable
-private fun LoanCalendarSummaryCard(
-    loan: Loan,
-    installments: List<Installment>,
-    nextInstallment: Installment?,
-    overdueCount: Int,
-    paidCount: Int,
-    pendingCount: Int
-) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            Text(
-                text = "Calendario del préstamo",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
-            )
-
-            SummaryRow(
-                label = "Fecha de inicio",
-                value = formatDate(loan.startDateMillis)
-            )
-
-            SummaryRow(
-                label = "Fecha de creación",
-                value = formatDate(loan.createdAtMillis)
-            )
-
-            SummaryRow(
-                label = "Total de cuotas",
-                value = installments.size.toString()
-            )
-
-            SummaryRow(
-                label = "Cuotas pagadas",
-                value = paidCount.toString()
-            )
-
-            SummaryRow(
-                label = "Cuotas pendientes",
-                value = pendingCount.toString()
-            )
-
-            SummaryRow(
-                label = "Cuotas vencidas",
-                value = overdueCount.toString(),
-                highlight = overdueCount > 0
-            )
-
-            SummaryRow(
-                label = "Próxima cuota",
-                value = nextInstallment?.let {
-                    "${formatDate(it.dueDateMillis)} · ${formatMoney(it.pendingAmount)}"
-                } ?: "Sin cuotas pendientes"
-            )
-        }
-    }
-}
-
-@Composable
-private fun LoanMoneySummaryCard(
-    loan: Loan,
-    totalPaid: Double,
-    remainingAmount: Double
-) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            Text(
-                text = "Resumen financiero",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
-            )
-
-            SummaryRow(
-                label = "Monto prestado",
-                value = formatMoney(loan.principalAmount)
-            )
-
-            SummaryRow(
-                label = "Interés",
-                value = "${loan.interestRatePercent}%"
-            )
-
-            SummaryRow(
-                label = "Total esperado",
-                value = formatMoney(loan.totalExpectedAmount)
-            )
-
-            SummaryRow(
-                label = "Total pagado",
-                value = formatMoney(totalPaid)
-            )
-
-            SummaryRow(
-                label = "Saldo pendiente",
-                value = formatMoney(remainingAmount),
-                highlight = true
-            )
-
-            SummaryRow(
-                label = "Modalidad",
-                value = loan.repaymentPlanType.label
-            )
-
-            SummaryRow(
-                label = "Plazo",
-                value = "${loan.termInDays} días"
-            )
-
-            SummaryRow(
-                label = "Cuota estimada",
-                value = formatMoney(loan.estimatedDailyAmount)
-            )
-        }
-    }
-}
-
-@Composable
-private fun LoanInstallmentsPreviewCard(
-    installments: List<Installment>
-) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            Text(
-                text = "Próximas cuotas",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
-            )
-
-            val visibleInstallments = installments
-                .sortedBy { it.dueDateMillis }
-                .take(8)
-
-            if (visibleInstallments.isEmpty()) {
                 Text(
-                    text = "Este préstamo todavía no tiene cuotas generadas.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppColors.Gray600
+                    text = state.clientName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.Gray900
                 )
-            } else {
-                visibleInstallments.forEach { installment ->
-                    InstallmentPreviewRow(
-                        installment = installment
-                    )
-                }
 
-                if (installments.size > visibleInstallments.size) {
-                    Text(
-                        text = "Mostrando ${visibleInstallments.size} de ${installments.size} cuotas.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = AppColors.Gray600
-                    )
-                }
+                Text(
+                    text = state.loanLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppColors.Gray500
+                )
             }
+
+            LoanStatusPill(
+                text = state.statusText,
+                color = state.statusColor
+            )
+        }
+
+        Spacer(modifier = Modifier.height(AppSpacing.sm))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            CompactInfoPill(
+                title = "Inicio",
+                value = state.startDateText,
+                color = AppColors.PrimaryDark,
+                modifier = Modifier.weight(1f)
+            )
+
+            CompactInfoPill(
+                title = "Cuotas",
+                value = state.termText,
+                color = AppColors.AccentTeal,
+                modifier = Modifier.weight(1f)
+            )
+
+            CompactInfoPill(
+                title = "Diario",
+                value = state.dailyText,
+                color = AppColors.Success,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(AppSpacing.xs))
+
+        CompactGhostButton(
+            text = "Ver cliente",
+            color = AppColors.PrimaryDark,
+            onClick = onOpenClient
+        )
+    }
+}
+
+@Composable
+private fun LoanFinancialCard(
+    state: LoanDetailState
+) {
+    ReferenceCard {
+        Text(
+            text = "Resumen financiero",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Spacer(modifier = Modifier.height(AppSpacing.xs))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            LoanMiniStat(
+                title = "Capital",
+                value = state.principalText,
+                color = AppColors.PrimaryDark,
+                modifier = Modifier.weight(1f)
+            )
+
+            LoanMiniStat(
+                title = "Interés",
+                value = state.interestText,
+                color = AppColors.AccentTeal,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            LoanMiniStat(
+                title = "A recaudar",
+                value = state.totalExpectedText,
+                color = AppColors.PrimaryDark,
+                modifier = Modifier.weight(1f)
+            )
+
+            LoanMiniStat(
+                title = "Cobrado",
+                value = state.totalPaidText,
+                color = AppColors.Success,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            LoanMiniStat(
+                title = "Pendiente",
+                value = state.pendingText,
+                color = if (state.pendingAmount > 0.0) AppColors.Warning else AppColors.Success,
+                modifier = Modifier.weight(1f)
+            )
+
+            LoanMiniStat(
+                title = "Vencidas",
+                value = state.overdueCount.toString(),
+                color = if (state.overdueCount > 0) AppColors.Error else AppColors.Success,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(AppSpacing.xs))
+
+        Text(
+            text = "Progreso de cobro",
+            style = MaterialTheme.typography.labelMedium,
+            color = AppColors.Gray600
+        )
+
+        ProgressBar(progress = state.progress)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = state.progressText,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.AccentTeal
+            )
+
+            Text(
+                text = state.nextInstallmentText,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray500
+            )
         }
     }
 }
 
 @Composable
-private fun InstallmentPreviewRow(
-    installment: Installment
+private fun LoanDetailActions(
+    state: LoanDetailState,
+    onCreatePayment: () -> Unit,
+    onEditLoan: () -> Unit,
+    onOpenPaymentsByLoan: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
-        ) {
-            Text(
-                text = "Cuota #${installment.number}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = AppColors.Gray900
-            )
-
-            Text(
-                text = formatDate(installment.dueDateMillis),
-                style = MaterialTheme.typography.bodySmall,
-                color = AppColors.Gray600
+        if (state.canRegisterPayment) {
+            DetailActionButton(
+                text = "Registrar pago",
+                color = AppColors.AccentTeal,
+                onClick = onCreatePayment,
+                modifier = Modifier.weight(1f)
             )
         }
 
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+        DetailActionButton(
+            text = "Editar",
+            color = AppColors.PrimaryDark,
+            onClick = onEditLoan,
+            modifier = Modifier.weight(1f)
+        )
+
+        DetailActionButton(
+            text = "Pagos",
+            color = AppColors.SecondaryDark,
+            onClick = onOpenPaymentsByLoan,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun LoanInstallmentsCard(
+    installments: List<InstallmentRow>
+) {
+    ReferenceCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = formatMoney(installment.pendingAmount),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
+                text = "Plan de cuotas",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
             )
 
             Text(
-                text = installment.status.label,
-                style = MaterialTheme.typography.bodySmall,
+                text = installments.size.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.AccentTeal
+            )
+        }
+
+        Spacer(modifier = Modifier.height(AppSpacing.sm))
+
+        if (installments.isEmpty()) {
+            Text(
+                text = "No hay cuotas generadas para este préstamo.",
+                style = MaterialTheme.typography.bodyMedium,
                 color = AppColors.Gray600
             )
+        } else {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            ) {
+                installments.take(10).forEach { installment ->
+                    InstallmentReferenceRow(
+                        installment = installment
+                    )
+                }
+            }
+
+            if (installments.size > 10) {
+                Spacer(modifier = Modifier.height(AppSpacing.xs))
+
+                Text(
+                    text = "Mostrando 10 de ${installments.size} cuotas.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AppColors.Gray500
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun LoanInfoCard(
-    title: String,
-    value: String
+private fun InstallmentReferenceRow(
+    installment: InstallmentRow
 ) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(AppRadius.card))
+            .background(AppColors.SurfaceMuted)
+            .padding(AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = installment.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.Gray900
+                )
+
+                Text(
+                    text = installment.dueDateText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppColors.Gray500
+                )
+            }
+
+            LoanStatusPill(
+                text = installment.statusText,
+                color = installment.statusColor
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Esperado ${installment.expectedText}",
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray500
+            )
+
+            Text(
+                text = "Pendiente ${installment.pendingText}",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = if (installment.pendingAmount > 0.0) AppColors.Warning else AppColors.Success
+            )
+        }
+
+        ProgressBar(progress = installment.progress)
+    }
+}
+
+@Composable
+private fun LoanPaymentsCard(
+    payments: List<PaymentRow>
+) {
+    ReferenceCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Pagos recientes",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Gray900
+            )
+
+            Text(
+                text = payments.size.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Success
+            )
+        }
+
+        Spacer(modifier = Modifier.height(AppSpacing.sm))
+
+        if (payments.isEmpty()) {
+            Text(
+                text = "Aún no hay pagos registrados para este préstamo.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.Gray600
+            )
+        } else {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            ) {
+                payments.forEach { payment ->
+                    PaymentReferenceRow(payment = payment)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentReferenceRow(
+    payment: PaymentRow
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(AppRadius.card))
+            .background(AppColors.SurfaceMuted)
+            .padding(AppSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(AppRadius.pill))
+                .background(AppColors.Success.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "✓",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Success
+            )
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = payment.amountText,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Gray900
+            )
+
+            Text(
+                text = payment.dateText,
+                style = MaterialTheme.typography.labelMedium,
+                color = AppColors.Gray500
+            )
+        }
+
+        Text(
+            text = payment.methodText,
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.Gray600
+        )
+    }
+}
+
+@Composable
+private fun CompactInfoPill(
+    title: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.heightIn(min = 62.dp),
+        color = color.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(AppRadius.md),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.20f)
+        )
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.labelSmall,
                 color = AppColors.Gray600
             )
 
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleMedium,
-                color = AppColors.Gray900
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
             )
         }
     }
 }
 
 @Composable
-private fun SummaryRow(
-    label: String,
+private fun LoanMiniStat(
+    title: String,
     value: String,
-    highlight: Boolean = false
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+    Surface(
+        modifier = modifier.heightIn(min = 72.dp),
+        color = color.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(AppRadius.md),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.20f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoanStatusPill(
+    text: String,
+    color: Color
+) {
+    Surface(
+        color = color.copy(alpha = 0.10f),
+        shape = RoundedCornerShape(AppRadius.pill),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.28f)
+        )
     ) {
         Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = AppColors.Gray600
-        )
-
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (highlight) FontWeight.Bold else FontWeight.Normal,
-            color = if (highlight) AppColors.AccentTeal else AppColors.Gray900
+            modifier = Modifier.padding(
+                horizontal = AppSpacing.sm,
+                vertical = AppSpacing.xs
+            ),
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = color
         )
     }
 }
 
-private fun getOrCreateInstallments(loan: Loan): List<Installment> {
-    val currentInstallments = LocalInstallmentRepository.getInstallmentsByLoan(loan.id)
-
-    return if (currentInstallments.isEmpty()) {
-        LocalInstallmentRepository.generateInstallmentsForLoan(loan)
-    } else {
-        currentInstallments
+@Composable
+private fun CompactGhostButton(
+    text: String,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .height(38.dp)
+            .clip(RoundedCornerShape(AppRadius.pill))
+            .clickable { onClick() },
+        color = color.copy(alpha = 0.10f),
+        shape = RoundedCornerShape(AppRadius.pill),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.22f)
+        )
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = AppSpacing.md),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
     }
 }
 
-private fun resolveLoanStatus(
+@Composable
+private fun DetailActionButton(
+    text: String,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .height(50.dp)
+            .clip(RoundedCornerShape(AppRadius.card))
+            .clickable { onClick() },
+        color = color,
+        shape = RoundedCornerShape(AppRadius.card),
+        shadowElevation = 1.dp
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = AppSpacing.sm),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.White
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProgressBar(
+    progress: Float
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(8.dp)
+            .clip(RoundedCornerShape(AppRadius.pill))
+            .background(AppColors.Gray100)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .height(8.dp)
+                .clip(RoundedCornerShape(AppRadius.pill))
+                .background(AppColors.AccentTeal)
+        )
+    }
+}
+
+@Composable
+private fun ReferenceCard(
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = AppColors.Surface,
+        shape = RoundedCornerShape(AppRadius.cardLarge),
+        shadowElevation = 2.dp,
+        border = BorderStroke(
+            width = 1.dp,
+            color = AppColors.Border
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.cardPaddingLarge),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            content = content
+        )
+    }
+}
+
+private data class LoanDetailState(
+    val loanId: String,
+    val clientName: String,
+    val loanLabel: String,
+    val statusText: String,
+    val statusColor: Color,
+    val principalText: String,
+    val interestText: String,
+    val totalExpectedText: String,
+    val totalPaidText: String,
+    val pendingText: String,
+    val pendingAmount: Double,
+    val progress: Float,
+    val progressText: String,
+    val startDateText: String,
+    val termText: String,
+    val dailyText: String,
+    val nextInstallmentText: String,
+    val overdueCount: Int,
+    val canRegisterPayment: Boolean,
+    val installmentRows: List<InstallmentRow>,
+    val paymentRows: List<PaymentRow>
+)
+
+private data class InstallmentRow(
+    val title: String,
+    val dueDateText: String,
+    val expectedText: String,
+    val pendingText: String,
+    val pendingAmount: Double,
+    val progress: Float,
+    val statusText: String,
+    val statusColor: Color
+)
+
+private data class PaymentRow(
+    val amountText: String,
+    val dateText: String,
+    val methodText: String
+)
+
+private fun buildLoanDetailState(
     loan: Loan,
-    remainingAmount: Double,
-    overdueCount: Int
-): AppStatus {
-    return when {
-        loan.status == LoanStatus.CANCELLED -> AppStatus.INACTIVE
-        loan.status == LoanStatus.PAID -> AppStatus.COMPLETED
-        remainingAmount <= 0.0 -> AppStatus.COMPLETED
-        overdueCount > 0 -> AppStatus.OVERDUE
-        else -> AppStatus.ACTIVE
+    currencySymbol: String
+): LoanDetailState {
+    val client = LocalClientRepository.getClientById(loan.clientId)
+    val clientName = client?.fullName.orEmpty().ifBlank { "Cliente" }
+
+    val activePayments = LocalPaymentRepository
+        .getPaymentsByLoan(loan.id)
+        .filter { payment -> payment.status == PaymentStatus.ACTIVE }
+
+    val paid = activePayments.sumOf { payment -> payment.amount }
+    val pending = max(loan.totalExpectedAmount - paid, 0.0)
+
+    val progress = if (loan.totalExpectedAmount > 0.0) {
+        (paid / loan.totalExpectedAmount).toFloat().coerceIn(0f, 1f)
+    } else {
+        0f
     }
+
+    val installments = LocalInstallmentRepository
+        .getInstallmentsByLoan(loan.id)
+        .sortedWith(
+            compareBy<Installment> { installment ->
+                when (installment.status) {
+                    InstallmentStatus.OVERDUE -> 0
+                    InstallmentStatus.PARTIAL -> 1
+                    InstallmentStatus.PENDING -> 2
+                    InstallmentStatus.PAID -> 3
+                    InstallmentStatus.CANCELLED -> 4
+                }
+            }.thenBy { installment -> installment.dueDateMillis }
+        )
+
+    val nextInstallment = installments.firstOrNull { installment ->
+        installment.status == InstallmentStatus.PENDING ||
+            installment.status == InstallmentStatus.PARTIAL ||
+            installment.status == InstallmentStatus.OVERDUE
+    }
+
+    val overdueCount = installments.count { installment ->
+        installment.status == InstallmentStatus.OVERDUE
+    }
+
+    val statusText = when (loan.status) {
+        LoanStatus.ACTIVE -> if (overdueCount > 0) "Vencido" else "Activo"
+        LoanStatus.PAID -> "Pagado"
+        LoanStatus.CANCELLED -> "Cancelado"
+    }
+
+    val statusColor = when (loan.status) {
+        LoanStatus.ACTIVE -> if (overdueCount > 0) AppColors.Error else AppColors.AccentTeal
+        LoanStatus.PAID -> AppColors.Success
+        LoanStatus.CANCELLED -> AppColors.Gray500
+    }
+
+    return LoanDetailState(
+        loanId = loan.id,
+        clientName = clientName,
+        loanLabel = loan.description.ifBlank { "Préstamo #${loan.id.takeLast(4)}" },
+        statusText = statusText,
+        statusColor = statusColor,
+        principalText = formatMoney(loan.principalAmount, currencySymbol),
+        interestText = formatPercent(loan.interestRatePercent),
+        totalExpectedText = formatMoney(loan.totalExpectedAmount, currencySymbol),
+        totalPaidText = formatMoney(paid, currencySymbol),
+        pendingText = formatMoney(pending, currencySymbol),
+        pendingAmount = pending,
+        progress = progress,
+        progressText = formatPercent(progress.toDouble() * 100.0),
+        startDateText = formatDate(loan.startDateMillis),
+        termText = "${loan.termInDays} días",
+        dailyText = formatMoney(loan.estimatedDailyAmount, currencySymbol),
+        nextInstallmentText = nextInstallment?.let { installment ->
+            "Próxima: ${formatMoney(installment.pendingAmount, currencySymbol)} · ${formatDate(installment.dueDateMillis)}"
+        } ?: "Sin cuota pendiente",
+        overdueCount = overdueCount,
+        canRegisterPayment = loan.status == LoanStatus.ACTIVE && pending > 0.0,
+        installmentRows = installments.map { installment ->
+            buildInstallmentRow(
+                installment = installment,
+                currencySymbol = currencySymbol
+            )
+        },
+        paymentRows = activePayments
+            .sortedByDescending { payment -> payment.createdAtMillis }
+            .take(5)
+            .map { payment ->
+                buildPaymentRow(
+                    payment = payment,
+                    currencySymbol = currencySymbol
+                )
+            }
+    )
 }
 
-private fun formatMoney(value: Double): String {
-    return screenCurrencySymbol + DecimalFormat("#,##0.00").format(value)
+private fun buildInstallmentRow(
+    installment: Installment,
+    currencySymbol: String
+): InstallmentRow {
+    val paid = installment.paidAmount
+    val expected = installment.expectedAmount
+    val pending = max(installment.pendingAmount, 0.0)
+
+    val progress = if (expected > 0.0) {
+        (paid / expected).toFloat().coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    val statusText = when (installment.status) {
+        InstallmentStatus.PENDING -> "Pendiente"
+        InstallmentStatus.PARTIAL -> "Parcial"
+        InstallmentStatus.PAID -> "Pagada"
+        InstallmentStatus.OVERDUE -> "Vencida"
+        InstallmentStatus.CANCELLED -> "Cancelada"
+    }
+
+    val statusColor = when (installment.status) {
+        InstallmentStatus.PENDING -> AppColors.Warning
+        InstallmentStatus.PARTIAL -> AppColors.AccentTeal
+        InstallmentStatus.PAID -> AppColors.Success
+        InstallmentStatus.OVERDUE -> AppColors.Error
+        InstallmentStatus.CANCELLED -> AppColors.Gray500
+    }
+
+    return InstallmentRow(
+        title = "Cuota ${installment.number}",
+        dueDateText = formatDate(installment.dueDateMillis),
+        expectedText = formatMoney(expected, currencySymbol),
+        pendingText = formatMoney(pending, currencySymbol),
+        pendingAmount = pending,
+        progress = progress,
+        statusText = statusText,
+        statusColor = statusColor
+    )
+}
+
+private fun buildPaymentRow(
+    payment: Payment,
+    currencySymbol: String
+): PaymentRow {
+    return PaymentRow(
+        amountText = formatMoney(payment.amount, currencySymbol),
+        dateText = formatDate(payment.createdAtMillis),
+        methodText = payment.method.ifBlank { "Pago" }
+    )
+}
+
+private fun formatMoney(
+    value: Double,
+    currencySymbol: String
+): String {
+    return currencySymbol + DecimalFormat("#,##0").format(value)
+}
+
+private fun formatPercent(value: Double): String {
+    return DecimalFormat("#,##0.#").format(value) + "%"
 }
 
 private fun formatDate(millis: Long): String {
-    return SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        .format(Date(millis))
+    return SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(millis))
 }
-
 
