@@ -24,3 +24,11 @@ Version:
 11. Abrir Reportes.
 12. Confirmar que Más no aparece en bottom navigation.
 13. Confirmar que no aparece texto premium.
+
+## APK Release Candidate
+
+Ruta:
+_secure_local\release\apk\ControlPrestamos_v1.1.0_dev_release_candidate_signed_20260614-190142.apk
+
+SHA256:
+EEDBAEF9A02A3E5005EF39BBD325D126C77D40615BC10B2DFB9B259C67DADC8A

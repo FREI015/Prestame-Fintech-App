@@ -22,3 +22,16 @@ Construir release candidate firmado después de limpieza final.
 - Release pendiente.
 - Firma pendiente.
 - Instalación pendiente.
+
+## APK Release Candidate
+
+Ruta:
+_secure_local\release\apk\ControlPrestamos_v1.1.0_dev_release_candidate_signed_20260614-190142.apk
+
+SHA256:
+EEDBAEF9A02A3E5005EF39BBD325D126C77D40615BC10B2DFB9B259C67DADC8A
+
+## Versión instalada
+
+    versionCode=2 minSdk=26 targetSdk=35
+    versionName=1.1.0-dev
