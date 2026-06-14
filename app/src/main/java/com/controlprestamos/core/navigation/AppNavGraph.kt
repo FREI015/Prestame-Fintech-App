@@ -86,7 +86,7 @@ fun AppNavGraph() {
     val appLockContext = LocalContext.current
 
     val appLockStartDestination = when {
-        LocalSecurityRepository.shouldRequirePinOnLaunch(appLockContext) -> AppRoute.AppLock.route
+        LocalSecurityRepository.shouldRequirePinOnLaunch(appLockContext) -> AppRoute.Login.route
         LocalAuthRepository.isSessionActive(appLockContext) -> AppRoute.Dashboard.route
         else -> AppRoute.Login.route
     }
@@ -140,9 +140,7 @@ fun AppNavGraph() {
             AppLockScreen(
                 onUnlocked = {
                     navController.navigate(AppRoute.Dashboard.route) {
-                        popUpTo(AppRoute.AppLock.route) {
-                            inclusive = true
-                        }
+                        popUpTo(0)
                         launchSingleTop = true
                     }
                 }
@@ -152,9 +150,7 @@ fun AppNavGraph() {
             LoginScreen(
                 onLoginSuccess = {
                     navController.navigate(AppRoute.Dashboard.route) {
-                        popUpTo(AppRoute.Login.route) {
-                            inclusive = true
-                        }
+                        popUpTo(0)
                         launchSingleTop = true
                     }
                 },
@@ -168,9 +164,7 @@ fun AppNavGraph() {
             RegisterScreen(
                 onRegisterSuccess = {
                     navController.navigate(AppRoute.Dashboard.route) {
-                        popUpTo(AppRoute.Login.route) {
-                            inclusive = true
-                        }
+                        popUpTo(0)
                         launchSingleTop = true
                     }
                 },
@@ -603,6 +597,7 @@ fun AppNavGraph() {
         }
     }
 }
+
 
 
 
