@@ -1,91 +1,125 @@
 ﻿package com.controlprestamos.features.reports.presentation
 
-import android.content.Context
-import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import com.controlprestamos.core.documents.PdfShareUtils
+import androidx.compose.ui.unit.dp
 import com.controlprestamos.core.ui.components.AppCard
-import com.controlprestamos.core.ui.components.AppDatePickerField
 import com.controlprestamos.core.ui.components.AppTopBar
 import com.controlprestamos.core.ui.components.PrimaryButton
 import com.controlprestamos.core.ui.components.SecondaryButton
 import com.controlprestamos.core.ui.theme.AppColors
+import com.controlprestamos.core.ui.theme.AppRadius
 import com.controlprestamos.core.ui.theme.AppSpacing
 import com.controlprestamos.features.clients.data.LocalClientRepository
-import com.controlprestamos.core.rules.FinancialOperationRules
-import com.controlprestamos.features.installments.data.LocalInstallmentRepository
-import com.controlprestamos.features.installments.domain.model.InstallmentStatus
 import com.controlprestamos.features.loans.data.LocalLoanRepository
 import com.controlprestamos.features.payments.data.LocalPaymentRepository
-import com.controlprestamos.features.preferences.data.LocalPreferencesRepository
-import com.controlprestamos.features.reports.domain.ReportPdfGenerator
-import com.controlprestamos.features.reports.domain.ReportPdfLine
-import java.text.DecimalFormat
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
+import com.controlprestamos.features.installments.data.LocalInstallmentRepository
 import java.util.Locale
 import kotlin.math.max
 
 @Composable
 fun ReportsScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit = {},
+    onBack: () -> Unit = onNavigateBack,
+    onOpenHome: () -> Unit = {},
+    onOpenClients: () -> Unit = {},
+    onOpenLoans: () -> Unit = {},
+    onOpenPayments: () -> Unit = {},
+    onOpenMore: () -> Unit = {},
+    onOpenBackup: () -> Unit = {},
+    onExportReports: () -> Unit = {},
+    onOpenExport: () -> Unit = onExportReports,
+    onOpenSettings: () -> Unit = {},
+    onOpenPreferences: () -> Unit = onOpenSettings
 ) {
-    val context = LocalContext.current
-    val preferences = LocalPreferencesRepository.getPreferences(context)
+    val clients = LocalClientRepository.getClients()
+    val activeClients = LocalClientRepository.getActiveClients()
+    val loans = LocalLoanRepository.getAllLoans()
+    val activeLoans = LocalLoanRepository.getActiveLoans()
+    val cancelledLoans = LocalLoanRepository.getCancelledLoans()
+    val payments = LocalPaymentRepository.getAllPayments()
+    val installments = LocalInstallmentRepository.getAllInstallments()
 
-    var selectedPeriod by remember {
-        mutableStateOf(ReportPeriod.MONTH)
+    val totalClients = clients.size
+    val totalActiveClients = activeClients.size
+    val inactiveClients = max(totalClients - totalActiveClients, 0)
+
+    val totalLoans = loans.size
+    val totalActiveLoans = activeLoans.size
+    val totalCancelledLoans = cancelledLoans.size
+    val paidLoans = loans.count { loan ->
+        loan.status.name.equals("PAID", ignoreCase = true)
     }
 
-    var customStartMillis by remember {
-        mutableStateOf(startOfCurrentMonthMillis())
+    val principalInPortfolio = loans.sumOf { loan ->
+        loan.principalAmount
     }
 
-    var customEndMillis by remember {
-        mutableStateOf(endOfTodayMillis())
+    val expectedPortfolio = loans.sumOf { loan ->
+        loan.totalExpectedAmount
     }
 
-    val state = remember(
-        selectedPeriod,
-        customStartMillis,
-        customEndMillis,
-        preferences.currencySymbol
-    ) {
-        buildReportsState(
-            period = selectedPeriod,
-            customStartMillis = customStartMillis,
-            customEndMillis = customEndMillis,
-            currencySymbol = preferences.currencySymbol
-        )
+    val activeExpectedPortfolio = activeLoans.sumOf { loan ->
+        loan.totalExpectedAmount
+    }
+
+    val collectedTotal = payments.sumOf { payment ->
+        payment.amount
+    }
+
+    val pendingFromInstallments = installments.sumOf { installment ->
+        installment.pendingAmount
+    }
+
+    val overdueInstallments = installments.count { installment ->
+        installment.status.name.equals("OVERDUE", ignoreCase = true)
+    }
+
+    val pendingInstallments = installments.count { installment ->
+        installment.status.name.equals("PENDING", ignoreCase = true) ||
+            installment.status.name.equals("PARTIAL", ignoreCase = true) ||
+            installment.status.name.equals("OVERDUE", ignoreCase = true)
+    }
+
+    val paidInstallments = installments.count { installment ->
+        installment.status.name.equals("PAID", ignoreCase = true)
+    }
+
+    val recoveryPercent = if (expectedPortfolio > 0.0) {
+        (collectedTotal / expectedPortfolio) * 100.0
+    } else {
+        0.0
     }
 
     Scaffold(
         topBar = {
             AppTopBar(
                 title = "Reportes",
-                subtitle = "Resumen financiero y cartera",
+                subtitle = "Resumen profesional",
                 showBack = true,
-                onBack = onNavigateBack
+                showMore = false,
+                showMenu = false,
+                showNotifications = false,
+                onBack = onBack
             )
         },
         containerColor = AppColors.Background
@@ -103,373 +137,377 @@ fun ReportsScreen(
                     .padding(AppSpacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
-                ExecutiveReportHeader(state = state)
+                Spacer(modifier = Modifier.height(AppSpacing.xs))
 
-                ReportFilterCard(
-                    selectedPeriod = selectedPeriod,
-                    customStartMillis = customStartMillis,
-                    customEndMillis = customEndMillis,
-                    onPeriodSelected = { selected ->
-                        selectedPeriod = selected
-                    },
-                    onStartDateSelected = { selected ->
-                        customStartMillis = selected
-
-                        if (customStartMillis > customEndMillis) {
-                            customEndMillis = selected
-                        }
-                    },
-                    onEndDateSelected = { selected ->
-                        customEndMillis = selected
-
-                        if (customEndMillis < customStartMillis) {
-                            customStartMillis = selected
-                        }
-                    }
+                ReportsHeaderCard(
+                    collectedTotal = collectedTotal,
+                    expectedPortfolio = expectedPortfolio,
+                    recoveryPercent = recoveryPercent
                 )
 
-                SectionTitle(
-                    title = "Resumen del período",
-                    subtitle = "Pagos recibidos según el filtro seleccionado."
+                PortfolioSummaryCard(
+                    totalClients = totalClients,
+                    activeClients = totalActiveClients,
+                    inactiveClients = inactiveClients,
+                    totalLoans = totalLoans,
+                    activeLoans = totalActiveLoans,
+                    paidLoans = paidLoans,
+                    cancelledLoans = totalCancelledLoans
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-                ) {
-                    ReportMetricCard(
-                        title = "Cobrado",
-                        value = state.collectedInPeriodFormatted,
-                        subtitle = "${state.paymentsInPeriod} pagos",
-                        modifier = Modifier.weight(1f),
-                        strong = true
-                    )
-
-                    ReportMetricCard(
-                        title = "Promedio",
-                        value = state.averagePaymentFormatted,
-                        subtitle = "Por pago",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                SectionTitle(
-                    title = "Cartera general",
-                    subtitle = "Vista operativa del dinero prestado, cobrado y pendiente. No incluye clientes archivados."
+                MoneySummaryCard(
+                    principalInPortfolio = principalInPortfolio,
+                    expectedPortfolio = expectedPortfolio,
+                    activeExpectedPortfolio = activeExpectedPortfolio,
+                    collectedTotal = collectedTotal,
+                    pendingFromInstallments = pendingFromInstallments
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-                ) {
-                    ReportMetricCard(
-                        title = "Prestado",
-                        value = state.totalLentFormatted,
-                        subtitle = "${state.totalLoans} préstamos",
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    ReportMetricCard(
-                        title = "A cobrar",
-                        value = state.totalExpectedFormatted,
-                        subtitle = "Capital + interés",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-                ) {
-                    ReportMetricCard(
-                        title = "Cobrado",
-                        value = state.totalCollectedFormatted,
-                        subtitle = "Histórico",
-                        modifier = Modifier.weight(1f),
-                        strong = true
-                    )
-
-                    ReportMetricCard(
-                        title = "Pendiente",
-                        value = state.totalPendingFormatted,
-                        subtitle = "Saldo vivo",
-                        modifier = Modifier.weight(1f),
-                        warning = state.totalPending > 0.0
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-                ) {
-                    ReportMetricCard(
-                        title = "Vencido",
-                        value = state.totalOverdueFormatted,
-                        subtitle = "${state.overdueInstallments} cuotas",
-                        modifier = Modifier.weight(1f),
-                        danger = state.totalOverdue > 0.0
-                    )
-
-                    ReportMetricCard(
-                        title = "Cobrar hoy",
-                        value = state.todayDueFormatted,
-                        subtitle = "${state.todayDueInstallments} cuotas",
-                        modifier = Modifier.weight(1f),
-                        warning = state.todayDue > 0.0
-                    )
-                }
-
-                PortfolioIndicatorsCard(state = state)
-
-                ShareReportCard(
-                    context = context,
-                    businessName = preferences.businessName,
-                    state = state
+                InstallmentsSummaryCard(
+                    totalInstallments = installments.size,
+                    pendingInstallments = pendingInstallments,
+                    overdueInstallments = overdueInstallments,
+                    paidInstallments = paidInstallments
                 )
+
+                ExportAndAuditCard(
+                    onOpenBackup = onOpenBackup,
+                    onOpenExport = onOpenExport
+                )
+
+                QuickNavigationCard(
+                    onOpenClients = onOpenClients,
+                    onOpenLoans = onOpenLoans,
+                    onOpenPayments = onOpenPayments,
+                    onOpenMore = onOpenMore
+                )
+
+                SecondaryButton(
+                    text = "Volver",
+                    onClick = onBack
+                )
+
+                Spacer(modifier = Modifier.height(AppSpacing.md))
             }
+        }
+    }
+
+    keepReportCallbacksCompatible(
+        onOpenHome,
+        onOpenSettings,
+        onOpenPreferences
+    )
+}
+
+@Composable
+private fun ReportsHeaderCard(
+    collectedTotal: Double,
+    expectedPortfolio: Double,
+    recoveryPercent: Double
+) {
+    ReferenceCard {
+        Text(
+            text = "Estado general",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Text(
+            text = "Lectura rápida de cartera, cobros y recuperación acumulada.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppColors.Gray600
+        )
+
+        InfoBox(
+            title = "Cobrado acumulado",
+            value = formatMoney(collectedTotal),
+            modifier = Modifier.fillMaxWidth(),
+            highlight = true
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Cartera esperada",
+                value = formatMoney(expectedPortfolio),
+                modifier = Modifier.weight(1f)
+            )
+
+            InfoBox(
+                title = "Recuperación",
+                value = formatPercent(recoveryPercent),
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
 
 @Composable
-private fun ExecutiveReportHeader(
-    state: AdvancedReportsState
+private fun PortfolioSummaryCard(
+    totalClients: Int,
+    activeClients: Int,
+    inactiveClients: Int,
+    totalLoans: Int,
+    activeLoans: Int,
+    paidLoans: Int,
+    cancelledLoans: Int
 ) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ReferenceCard {
+        SectionTitle(
+            title = "Cartera",
+            subtitle = "Clientes y préstamos registrados en la aplicación."
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
-            Text(
-                text = "Reporte de cartera",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
+            InfoBox(
+                title = "Clientes",
+                value = totalClients.toString(),
+                modifier = Modifier.weight(1f),
+                highlight = true
             )
 
-            Text(
-                text = state.periodLabel,
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            InfoBox(
+                title = "Activos",
+                value = activeClients.toString(),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Inactivos",
+                value = inactiveClients.toString(),
+                modifier = Modifier.weight(1f)
             )
 
-            Text(
-                text = state.collectedInPeriodFormatted,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.AccentTeal
+            InfoBox(
+                title = "Préstamos",
+                value = totalLoans.toString(),
+                modifier = Modifier.weight(1f),
+                highlight = true
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Vigentes",
+                value = activeLoans.toString(),
+                modifier = Modifier.weight(1f)
             )
 
-            Text(
-                text = "Cobrado en el período · ${state.paymentsInPeriod} pagos registrados",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            InfoBox(
+                title = "Pagados",
+                value = paidLoans.toString(),
+                modifier = Modifier.weight(1f)
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-            ) {
-                CompactInfo(
-                    title = "Pendiente",
-                    value = state.totalPendingFormatted,
-                    modifier = Modifier.weight(1f),
-                    warning = state.totalPending > 0.0
-                )
-
-                CompactInfo(
-                    title = "Vencido",
-                    value = state.totalOverdueFormatted,
-                    modifier = Modifier.weight(1f),
-                    danger = state.totalOverdue > 0.0
-                )
-            }
+            InfoBox(
+                title = "Cancelados",
+                value = cancelledLoans.toString(),
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
 
 @Composable
-private fun ReportFilterCard(
-    selectedPeriod: ReportPeriod,
-    customStartMillis: Long,
-    customEndMillis: Long,
-    onPeriodSelected: (ReportPeriod) -> Unit,
-    onStartDateSelected: (Long) -> Unit,
-    onEndDateSelected: (Long) -> Unit
+private fun MoneySummaryCard(
+    principalInPortfolio: Double,
+    expectedPortfolio: Double,
+    activeExpectedPortfolio: Double,
+    collectedTotal: Double,
+    pendingFromInstallments: Double
 ) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ReferenceCard {
+        SectionTitle(
+            title = "Montos",
+            subtitle = "Capital, esperado, cobrado y pendiente por cuotas."
+        )
+
+        InfoBox(
+            title = "Capital prestado",
+            value = formatMoney(principalInPortfolio),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
-            SectionTitle(
-                title = "Filtro de período",
-                subtitle = "Selecciona el rango que quieres analizar."
+            InfoBox(
+                title = "Esperado total",
+                value = formatMoney(expectedPortfolio),
+                modifier = Modifier.weight(1f),
+                highlight = true
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-            ) {
-                PeriodButton(
-                    text = "Hoy",
-                    selected = selectedPeriod == ReportPeriod.TODAY,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onPeriodSelected(ReportPeriod.TODAY)
-                    }
-                )
+            InfoBox(
+                title = "Esperado activo",
+                value = formatMoney(activeExpectedPortfolio),
+                modifier = Modifier.weight(1f)
+            )
+        }
 
-                PeriodButton(
-                    text = "Semana",
-                    selected = selectedPeriod == ReportPeriod.WEEK,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onPeriodSelected(ReportPeriod.WEEK)
-                    }
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-            ) {
-                PeriodButton(
-                    text = "Mes",
-                    selected = selectedPeriod == ReportPeriod.MONTH,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onPeriodSelected(ReportPeriod.MONTH)
-                    }
-                )
-
-                PeriodButton(
-                    text = "General",
-                    selected = selectedPeriod == ReportPeriod.ALL,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onPeriodSelected(ReportPeriod.ALL)
-                    }
-                )
-            }
-
-            PeriodButton(
-                text = "Personalizado",
-                selected = selectedPeriod == ReportPeriod.CUSTOM,
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    onPeriodSelected(ReportPeriod.CUSTOM)
-                }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Cobrado",
+                value = formatMoney(collectedTotal),
+                modifier = Modifier.weight(1f),
+                highlight = true
             )
 
-            if (selectedPeriod == ReportPeriod.CUSTOM) {
-                AppDatePickerField(
-                    label = "Fecha desde",
-                    selectedDateMillis = customStartMillis,
-                    onDateSelected = onStartDateSelected,
-                    helperText = "El reporte incluirá pagos desde esta fecha."
-                )
-
-                AppDatePickerField(
-                    label = "Fecha hasta",
-                    selectedDateMillis = customEndMillis,
-                    onDateSelected = onEndDateSelected,
-                    helperText = "El reporte incluirá pagos hasta esta fecha."
-                )
-            }
+            InfoBox(
+                title = "Pendiente",
+                value = formatMoney(pendingFromInstallments),
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
 
 @Composable
-private fun PortfolioIndicatorsCard(
-    state: AdvancedReportsState
+private fun InstallmentsSummaryCard(
+    totalInstallments: Int,
+    pendingInstallments: Int,
+    overdueInstallments: Int,
+    paidInstallments: Int
 ) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ReferenceCard {
+        SectionTitle(
+            title = "Cuotas",
+            subtitle = "Seguimiento de cuotas pendientes, vencidas y pagadas."
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
-            SectionTitle(
-                title = "Indicadores de cartera",
-                subtitle = "Lectura rápida del estado general del negocio."
+            InfoBox(
+                title = "Total",
+                value = totalInstallments.toString(),
+                modifier = Modifier.weight(1f)
             )
 
-            IndicatorRow("Clientes activos", state.totalClients.toString())
-            IndicatorRow("Clientes con deuda", state.clientsWithDebt.toString())
-            IndicatorRow("Préstamos activos", state.activeLoans.toString())
-            IndicatorRow("Préstamos completados", state.completedLoans.toString())
-            IndicatorRow("Cuotas pendientes/parciales", state.pendingInstallments.toString())
-            IndicatorRow("Cuotas pagadas", state.paidInstallments.toString())
+            InfoBox(
+                title = "Pendientes",
+                value = pendingInstallments.toString(),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Vencidas",
+                value = overdueInstallments.toString(),
+                modifier = Modifier.weight(1f),
+                warning = overdueInstallments > 0
+            )
+
+            InfoBox(
+                title = "Pagadas",
+                value = paidInstallments.toString(),
+                modifier = Modifier.weight(1f),
+                highlight = true
+            )
         }
     }
 }
 
 @Composable
-private fun ShareReportCard(
-    context: Context,
-    businessName: String,
-    state: AdvancedReportsState
+private fun ExportAndAuditCard(
+    onOpenBackup: () -> Unit,
+    onOpenExport: () -> Unit
 ) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            SectionTitle(
-                title = "Compartir reporte",
-                subtitle = "Exporta el resumen como texto o como documento PDF."
-            )
+    ReferenceCard {
+        SectionTitle(
+            title = "Exportación y respaldo",
+            subtitle = "Prepara información para revisión o respaldo antes de cambios mayores."
+        )
 
-            PrimaryButton(
-                text = "Compartir texto",
-                onClick = {
-                    shareReport(
-                        context = context,
-                        reportText = buildReportText(
-                            businessName = businessName,
-                            state = state
-                        )
-                    )
-                }
-            )
+        ActionRow(
+            title = "Exportar reporte",
+            description = "Usar esta vista como base para revisar cartera y cobros.",
+            primaryText = "Exportar",
+            onPrimaryClick = onOpenExport
+        )
 
-            SecondaryButton(
-                text = "Compartir PDF",
-                onClick = {
-                    val file = ReportPdfGenerator.generate(
-                        context = context,
-                        title = businessName,
-                        subtitle = "Reporte de cartera - ${state.periodLabel}",
-                        lines = buildReportPdfLines(state)
-                    )
+        ActionRow(
+            title = "Respaldo",
+            description = "Crear o revisar copia local de seguridad.",
+            primaryText = "Abrir respaldo",
+            onPrimaryClick = onOpenBackup
+        )
+    }
+}
 
-                    PdfShareUtils.sharePdf(
-                        context = context,
-                        file = file,
-                        chooserTitle = "Compartir reporte PDF"
-                    )
-                }
-            )
-        }
+@Composable
+private fun QuickNavigationCard(
+    onOpenClients: () -> Unit,
+    onOpenLoans: () -> Unit,
+    onOpenPayments: () -> Unit,
+    onOpenMore: () -> Unit
+) {
+    ReferenceCard {
+        SectionTitle(
+            title = "Navegación rápida",
+            subtitle = "Accesos directos para validar los números del reporte."
+        )
+
+        ActionRow(
+            title = "Clientes",
+            description = "Revisar los clientes que alimentan la cartera.",
+            primaryText = "Abrir",
+            onPrimaryClick = onOpenClients
+        )
+
+        ActionRow(
+            title = "Préstamos",
+            description = "Auditar préstamos vigentes, pagados y cancelados.",
+            primaryText = "Abrir",
+            onPrimaryClick = onOpenLoans
+        )
+
+        ActionRow(
+            title = "Pagos",
+            description = "Consultar cobros y registros de pago.",
+            primaryText = "Abrir",
+            onPrimaryClick = onOpenPayments
+        )
+
+        ActionRow(
+            title = "Más",
+            description = "Volver al centro de herramientas.",
+            primaryText = "Abrir",
+            onPrimaryClick = onOpenMore
+        )
     }
 }
 
 @Composable
 private fun SectionTitle(
     title: String,
-    subtitle: String? = null
+    subtitle: String
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Text(
             text = title,
@@ -478,115 +516,103 @@ private fun SectionTitle(
             color = AppColors.Gray900
         )
 
-        if (!subtitle.isNullOrBlank()) {
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = AppColors.Gray600
-            )
-        }
-    }
-}
-
-@Composable
-private fun PeriodButton(
-    text: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    if (selected) {
-        PrimaryButton(
-            text = text,
-            modifier = modifier,
-            onClick = onClick
-        )
-    } else {
-        SecondaryButton(
-            text = text,
-            modifier = modifier,
-            onClick = onClick
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = AppColors.Gray600
         )
     }
 }
 
 @Composable
-private fun ReportMetricCard(
+private fun ActionRow(
     title: String,
-    value: String,
-    subtitle: String,
-    modifier: Modifier = Modifier,
-    warning: Boolean = false,
-    danger: Boolean = false,
-    strong: Boolean = false
+    description: String,
+    primaryText: String,
+    onPrimaryClick: () -> Unit
 ) {
-    val accentColor = when {
-        danger -> AppColors.Error
-        warning -> AppColors.Warning
-        strong -> AppColors.AccentTeal
-        else -> AppColors.Gray900
-    }
-
-    AppCard(
-        modifier = modifier,
-        bordered = true
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = AppColors.SurfaceMuted,
+        shape = RoundedCornerShape(AppRadius.card),
+        border = BorderStroke(
+            width = 1.dp,
+            color = AppColors.Border
+        )
     ) {
         Column(
+            modifier = Modifier.padding(AppSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = accentColor
-            )
-
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
             )
 
             Text(
-                text = subtitle,
-                style = MaterialTheme.typography.labelMedium,
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
                 color = AppColors.Gray600
+            )
+
+            PrimaryButton(
+                text = primaryText,
+                onClick = onPrimaryClick
             )
         }
     }
 }
 
 @Composable
-private fun CompactInfo(
+private fun InfoBox(
     title: String,
     value: String,
     modifier: Modifier = Modifier,
-    warning: Boolean = false,
-    danger: Boolean = false
+    highlight: Boolean = false,
+    warning: Boolean = false
 ) {
+    val boxColor = when {
+        warning -> AppColors.Warning.copy(alpha = 0.08f)
+        highlight -> AppColors.AccentTeal.copy(alpha = 0.10f)
+        else -> AppColors.SurfaceMuted
+    }
+
+    val borderColor = when {
+        warning -> AppColors.Warning.copy(alpha = 0.25f)
+        highlight -> AppColors.AccentTeal.copy(alpha = 0.30f)
+        else -> AppColors.Border
+    }
+
     val valueColor = when {
-        danger -> AppColors.Error
         warning -> AppColors.Warning
+        highlight -> AppColors.AccentTeal
         else -> AppColors.Gray900
     }
 
-    AppCard(
-        modifier = modifier,
-        bordered = true
+    Surface(
+        modifier = modifier.heightIn(min = 68.dp),
+        color = boxColor,
+        shape = RoundedCornerShape(AppRadius.card),
+        border = BorderStroke(
+            width = 1.dp,
+            color = borderColor
+        )
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
-                color = AppColors.Gray600
+                color = AppColors.Gray500
             )
 
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = valueColor
             )
@@ -595,405 +621,30 @@ private fun CompactInfo(
 }
 
 @Composable
-private fun IndicatorRow(
-    label: String,
-    value: String
+private fun ReferenceCard(
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    Row(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        bordered = true
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = AppColors.Gray600
-        )
-
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = AppColors.Gray900
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            content = content
         )
     }
 }
 
-private enum class ReportPeriod(
-    val label: String
+private fun formatMoney(value: Double): String {
+    return "$" + String.format(Locale.US, "%,.2f", value)
+}
+
+private fun formatPercent(value: Double): String {
+    return String.format(Locale.US, "%.1f%%", value)
+}
+
+private fun keepReportCallbacksCompatible(
+    vararg callbacks: () -> Unit
 ) {
-    TODAY("Hoy"),
-    WEEK("Esta semana"),
-    MONTH("Este mes"),
-    ALL("General"),
-    CUSTOM("Personalizado")
+    callbacks.isNotEmpty()
 }
-
-private data class AdvancedReportsState(
-    val periodLabel: String,
-    val currencySymbol: String,
-    val totalClients: Int,
-    val clientsWithDebt: Int,
-    val totalLoans: Int,
-    val activeLoans: Int,
-    val completedLoans: Int,
-    val totalLent: Double,
-    val totalExpected: Double,
-    val totalCollected: Double,
-    val totalPending: Double,
-    val totalOverdue: Double,
-    val todayDue: Double,
-    val collectedInPeriod: Double,
-    val paymentsInPeriod: Int,
-    val overdueInstallments: Int,
-    val todayDueInstallments: Int,
-    val pendingInstallments: Int,
-    val paidInstallments: Int
-) {
-    val totalLentFormatted: String
-        get() = formatMoney(totalLent, currencySymbol)
-
-    val totalExpectedFormatted: String
-        get() = formatMoney(totalExpected, currencySymbol)
-
-    val totalCollectedFormatted: String
-        get() = formatMoney(totalCollected, currencySymbol)
-
-    val totalPendingFormatted: String
-        get() = formatMoney(totalPending, currencySymbol)
-
-    val totalOverdueFormatted: String
-        get() = formatMoney(totalOverdue, currencySymbol)
-
-    val todayDueFormatted: String
-        get() = formatMoney(todayDue, currencySymbol)
-
-    val collectedInPeriodFormatted: String
-        get() = formatMoney(collectedInPeriod, currencySymbol)
-
-    val averagePaymentFormatted: String
-        get() = if (paymentsInPeriod <= 0) {
-            formatMoney(0.0, currencySymbol)
-        } else {
-            formatMoney(collectedInPeriod / paymentsInPeriod, currencySymbol)
-        }
-}
-
-private fun buildReportsState(
-    period: ReportPeriod,
-    customStartMillis: Long,
-    customEndMillis: Long,
-    currencySymbol: String
-): AdvancedReportsState {
-    val allClients = LocalClientRepository.getClients()
-    val clients = allClients.filter { client ->
-        FinancialOperationRules.canShowClientInOperationalLists(client)
-    }
-
-    val clientById = allClients.associateBy { it.id }
-
-    val loans = LocalLoanRepository
-        .getAllLoans()
-        .filter { loan ->
-            FinancialOperationRules.shouldCountLoanInOperationalReports(
-                client = clientById[loan.clientId],
-                loan = loan
-            )
-        }
-
-    val operationalLoanIds = loans.map { it.id }.toSet()
-
-    val payments = LocalPaymentRepository
-        .getAllPayments()
-        .filter { payment ->
-            payment.loanId in operationalLoanIds &&
-                FinancialOperationRules.shouldCountPaymentFinancially(payment)
-        }
-
-    val installments = LocalInstallmentRepository
-        .getAllInstallments()
-        .filter { installment ->
-            installment.status != InstallmentStatus.CANCELLED &&
-                installment.loanId in operationalLoanIds
-        }
-
-    val totalLent = loans.sumOf { it.principalAmount }
-    val totalExpected = loans.sumOf { it.totalExpectedAmount }
-    val totalCollected = payments.sumOf { it.amount }
-    val totalPending = max(totalExpected - totalCollected, 0.0)
-
-    val activeLoans = loans.count { loan ->
-        max(loan.totalExpectedAmount - LocalPaymentRepository.getTotalPaidByLoan(loan.id), 0.0) > 0.0
-    }
-
-    val completedLoans = loans.count { loan ->
-        max(loan.totalExpectedAmount - LocalPaymentRepository.getTotalPaidByLoan(loan.id), 0.0) <= 0.0
-    }
-
-    val clientsWithDebt = loans
-        .groupBy { it.clientId }
-        .count { (_, clientLoans) ->
-            clientLoans.any { loan ->
-                max(loan.totalExpectedAmount - LocalPaymentRepository.getTotalPaidByLoan(loan.id), 0.0) > 0.0
-            }
-        }
-
-    val overdueInstallments = installments.filter {
-        it.status == InstallmentStatus.OVERDUE
-    }
-
-    val todayDueInstallments = installments.filter {
-        (it.status == InstallmentStatus.PENDING || it.status == InstallmentStatus.PARTIAL) &&
-            isToday(it.dueDateMillis)
-    }
-
-    val periodRange = selectedPeriodRange(
-        period = period,
-        customStartMillis = customStartMillis,
-        customEndMillis = customEndMillis
-    )
-
-    val paymentsInPeriod = payments.filter { payment ->
-        periodRange == null || payment.createdAtMillis in periodRange.first..periodRange.second
-    }
-
-    return AdvancedReportsState(
-        periodLabel = selectedPeriodLabel(
-            period = period,
-            customStartMillis = customStartMillis,
-            customEndMillis = customEndMillis
-        ),
-        currencySymbol = currencySymbol,
-        totalClients = clients.size,
-        clientsWithDebt = clientsWithDebt,
-        totalLoans = loans.size,
-        activeLoans = activeLoans,
-        completedLoans = completedLoans,
-        totalLent = totalLent,
-        totalExpected = totalExpected,
-        totalCollected = totalCollected,
-        totalPending = totalPending,
-        totalOverdue = overdueInstallments.sumOf { it.pendingAmount },
-        todayDue = todayDueInstallments.sumOf { it.pendingAmount },
-        collectedInPeriod = paymentsInPeriod.sumOf { it.amount },
-        paymentsInPeriod = paymentsInPeriod.size,
-        overdueInstallments = overdueInstallments.size,
-        todayDueInstallments = todayDueInstallments.size,
-        pendingInstallments = installments.count {
-            it.status == InstallmentStatus.PENDING || it.status == InstallmentStatus.PARTIAL
-        },
-        paidInstallments = installments.count {
-            it.status == InstallmentStatus.PAID
-        }
-    )
-}
-
-private fun buildReportText(
-    businessName: String,
-    state: AdvancedReportsState
-): String {
-    return """
-$businessName
-
-REPORTE OPERATIVO DE CARTERA
-Periodo: ${state.periodLabel}
-Fecha de generación: ${formatDate(System.currentTimeMillis())}
-
-RESUMEN DEL PERÍODO
-Cobrado: ${state.collectedInPeriodFormatted}
-Pagos: ${state.paymentsInPeriod}
-Promedio por pago: ${state.averagePaymentFormatted}
-
-RESUMEN GENERAL
-Total prestado: ${state.totalLentFormatted}
-Total a cobrar: ${state.totalExpectedFormatted}
-Total cobrado: ${state.totalCollectedFormatted}
-Total pendiente: ${state.totalPendingFormatted}
-Total vencido: ${state.totalOverdueFormatted}
-Cobrar hoy: ${state.todayDueFormatted}
-
-INDICADORES
-Clientes activos: ${state.totalClients}
-Clientes con deuda: ${state.clientsWithDebt}
-Préstamos activos: ${state.activeLoans}
-Préstamos completados: ${state.completedLoans}
-Cuotas vencidas: ${state.overdueInstallments}
-Cuotas pendientes/parciales: ${state.pendingInstallments}
-Cuotas pagadas: ${state.paidInstallments}
-
-Generado desde Control Préstamos.
-""".trimIndent()
-}
-
-private fun buildReportPdfLines(
-    state: AdvancedReportsState
-): List<ReportPdfLine> {
-    return listOf(
-        ReportPdfLine("Periodo", state.periodLabel),
-        ReportPdfLine("Fecha de generación", formatDate(System.currentTimeMillis())),
-        ReportPdfLine("Cobrado periodo", state.collectedInPeriodFormatted),
-        ReportPdfLine("Pagos periodo", state.paymentsInPeriod.toString()),
-        ReportPdfLine("Promedio por pago", state.averagePaymentFormatted),
-        ReportPdfLine("Total prestado", state.totalLentFormatted),
-        ReportPdfLine("Total a cobrar", state.totalExpectedFormatted),
-        ReportPdfLine("Total cobrado", state.totalCollectedFormatted),
-        ReportPdfLine("Total pendiente", state.totalPendingFormatted),
-        ReportPdfLine("Total vencido", state.totalOverdueFormatted),
-        ReportPdfLine("Cobrar hoy", state.todayDueFormatted),
-        ReportPdfLine("Clientes activos", state.totalClients.toString()),
-        ReportPdfLine("Clientes con deuda", state.clientsWithDebt.toString()),
-        ReportPdfLine("Préstamos activos", state.activeLoans.toString()),
-        ReportPdfLine("Préstamos completados", state.completedLoans.toString()),
-        ReportPdfLine("Cuotas vencidas", state.overdueInstallments.toString()),
-        ReportPdfLine("Cuotas pendientes/parciales", state.pendingInstallments.toString()),
-        ReportPdfLine("Cuotas pagadas", state.paidInstallments.toString())
-    )
-}
-
-private fun shareReport(
-    context: Context,
-    reportText: String
-) {
-    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_SUBJECT, "Reporte Control Préstamos")
-        putExtra(Intent.EXTRA_TEXT, reportText)
-    }
-
-    val chooser = Intent.createChooser(sendIntent, "Compartir reporte").apply {
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
-
-    context.startActivity(chooser)
-}
-
-private fun selectedPeriodRange(
-    period: ReportPeriod,
-    customStartMillis: Long,
-    customEndMillis: Long
-): Pair<Long, Long>? {
-    return when (period) {
-        ReportPeriod.TODAY -> startOfTodayMillis() to endOfTodayMillis()
-        ReportPeriod.WEEK -> startOfCurrentWeekMillis() to endOfTodayMillis()
-        ReportPeriod.MONTH -> startOfCurrentMonthMillis() to endOfTodayMillis()
-        ReportPeriod.ALL -> null
-        ReportPeriod.CUSTOM -> {
-            val start = startOfDayMillis(customStartMillis)
-            val end = endOfDayMillis(customEndMillis)
-
-            if (start <= end) {
-                start to end
-            } else {
-                end to start
-            }
-        }
-    }
-}
-
-private fun selectedPeriodLabel(
-    period: ReportPeriod,
-    customStartMillis: Long,
-    customEndMillis: Long
-): String {
-    return when (period) {
-        ReportPeriod.CUSTOM -> {
-            val start = startOfDayMillis(customStartMillis)
-            val end = endOfDayMillis(customEndMillis)
-
-            if (start <= end) {
-                "Personalizado: ${formatDateOnly(start)} - ${formatDateOnly(end)}"
-            } else {
-                "Personalizado: ${formatDateOnly(end)} - ${formatDateOnly(start)}"
-            }
-        }
-
-        else -> period.label
-    }
-}
-
-private fun startOfTodayMillis(): Long {
-    return startOfDayMillis(System.currentTimeMillis())
-}
-
-private fun endOfTodayMillis(): Long {
-    return endOfDayMillis(System.currentTimeMillis())
-}
-
-private fun startOfCurrentWeekMillis(): Long {
-    val calendar = Calendar.getInstance()
-
-    calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
-    calendar.set(Calendar.HOUR_OF_DAY, 0)
-    calendar.set(Calendar.MINUTE, 0)
-    calendar.set(Calendar.SECOND, 0)
-    calendar.set(Calendar.MILLISECOND, 0)
-
-    return calendar.timeInMillis
-}
-
-private fun startOfCurrentMonthMillis(): Long {
-    val calendar = Calendar.getInstance()
-
-    calendar.set(Calendar.DAY_OF_MONTH, 1)
-    calendar.set(Calendar.HOUR_OF_DAY, 0)
-    calendar.set(Calendar.MINUTE, 0)
-    calendar.set(Calendar.SECOND, 0)
-    calendar.set(Calendar.MILLISECOND, 0)
-
-    return calendar.timeInMillis
-}
-
-private fun startOfDayMillis(millis: Long): Long {
-    val calendar = Calendar.getInstance().apply {
-        timeInMillis = millis
-    }
-
-    calendar.set(Calendar.HOUR_OF_DAY, 0)
-    calendar.set(Calendar.MINUTE, 0)
-    calendar.set(Calendar.SECOND, 0)
-    calendar.set(Calendar.MILLISECOND, 0)
-
-    return calendar.timeInMillis
-}
-
-private fun endOfDayMillis(millis: Long): Long {
-    val calendar = Calendar.getInstance().apply {
-        timeInMillis = millis
-    }
-
-    calendar.set(Calendar.HOUR_OF_DAY, 23)
-    calendar.set(Calendar.MINUTE, 59)
-    calendar.set(Calendar.SECOND, 59)
-    calendar.set(Calendar.MILLISECOND, 999)
-
-    return calendar.timeInMillis
-}
-
-private fun isToday(millis: Long): Boolean {
-    val target = Calendar.getInstance().apply {
-        timeInMillis = millis
-    }
-
-    val today = Calendar.getInstance()
-
-    return target.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-        target.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-}
-
-private fun formatMoney(
-    value: Double,
-    currencySymbol: String
-): String {
-    return currencySymbol + DecimalFormat("#,##0.00").format(value)
-}
-
-private fun formatDate(millis: Long): String {
-    return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        .format(Date(millis))
-}
-
-private fun formatDateOnly(millis: Long): String {
-    return SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        .format(Date(millis))
-}
-
-
