@@ -1,5 +1,6 @@
 ﻿package com.controlprestamos.features.dashboard.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.controlprestamos.core.ui.components.AppBottomNavigationBar
 import com.controlprestamos.core.ui.components.AppCard
+import com.controlprestamos.core.ui.components.ClientAvatar
 import com.controlprestamos.core.ui.components.AppTopBar
 import com.controlprestamos.core.ui.theme.AppColors
 import com.controlprestamos.core.ui.theme.AppSpacing
@@ -93,7 +95,7 @@ fun DashboardScreen(
                     .padding(AppSpacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
-                DashboardExecutiveCard(state = state)
+                PremiumPortfolioTotalsCard(currencySymbol = preferences.currencySymbol)
 
                 SectionTitle(
                     title = "Cobranza",
@@ -193,15 +195,215 @@ fun DashboardScreen(
                 PortfolioHealthCard(state = state)
 
                 DashboardAlertsCard(state = state)
+
+                PremiumClientSnapshotCard(currencySymbol = preferences.currencySymbol)
             }
         }
     }
 }
 
+
 @Composable
-private fun DashboardExecutiveCard(
-    state: DashboardState
+private fun PremiumPortfolioTotalsCard(
+    currencySymbol: String
 ) {
+    val activeLoans = LocalLoanRepository
+        .getAllLoans()
+        .filter { loan -> loan.status.name == "ACTIVE" }
+
+    val capitalPlaced = activeLoans.sumOf { loan -> loan.principalAmount }
+    val portfolioTarget = activeLoans.sumOf { loan -> loan.totalExpectedAmount }
+    val expectedProfit = max(portfolioTarget - capitalPlaced, 0.0)
+    val collected = activeLoans.sumOf { loan ->
+        LocalPaymentRepository.getTotalPaidByLoan(loan.id)
+    }
+    val pending = max(portfolioTarget - collected, 0.0)
+    val progress = if (portfolioTarget > 0.0) {
+        (collected / portfolioTarget).toFloat().coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
+        ) {
+            Text(
+                text = "Cartera ejecutiva",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Gray900
+            )
+
+            Text(
+                text = "Resumen financiero real calculado desde préstamos activos y pagos vigentes.",
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.Gray600
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            ) {
+                PremiumMiniMetric(
+                    title = "Capital colocado",
+                    value = formatMoney(capitalPlaced, currencySymbol),
+                    subtitle = "Principal activo",
+                    modifier = Modifier.weight(1f)
+                )
+
+                PremiumMiniMetric(
+                    title = "Utilidad pactada",
+                    value = formatMoney(expectedProfit, currencySymbol),
+                    subtitle = "Ganancia esperada",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            ) {
+                PremiumMiniMetric(
+                    title = "Cartera objetivo",
+                    value = formatMoney(portfolioTarget, currencySymbol),
+                    subtitle = "Capital + utilidad",
+                    modifier = Modifier.weight(1f)
+                )
+
+                PremiumMiniMetric(
+                    title = "Recaudado",
+                    value = formatMoney(collected, currencySymbol),
+                    subtitle = "Pagos activos",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            PremiumProgressLine(
+                title = "Avance de recaudación",
+                progress = progress,
+                leftText = formatMoney(collected, currencySymbol),
+                rightText = "Pendiente: ${formatMoney(pending, currencySymbol)}"
+            )
+        }
+    }
+}
+
+@Composable
+private fun PremiumMiniMetric(
+    title: String,
+    value: String,
+    subtitle: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = AppColors.Background,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = AppColors.Divider
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Gray900
+            )
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray600
+            )
+        }
+    }
+}
+
+@Composable
+private fun PremiumProgressLine(
+    title: String,
+    progress: Float,
+    leftText: String,
+    rightText: String
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Gray900
+            )
+
+            Text(
+                text = "${(progress * 100).toInt()}%",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.AccentTeal
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(AppColors.Divider)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progress)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(AppColors.AccentTeal)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = leftText,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = rightText,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray600
+            )
+        }
+    }
+}
+
+@Composable
+private fun PremiumClientSnapshotCard(
+    currencySymbol: String
+) {
+    val rows = buildPremiumClientSnapshots()
+
     AppCard(
         modifier = Modifier.fillMaxWidth(),
         bordered = true
@@ -210,51 +412,161 @@ private fun DashboardExecutiveCard(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
             Text(
-                text = "Panel ejecutivo",
-                style = MaterialTheme.typography.headlineSmall,
+                text = "Clientes activos",
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
             )
 
             Text(
-                text = "Resumen operativo de cartera, cobros y vencimientos. No incluye clientes archivados.",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Vista rápida de clientes con cartera activa, saldo pendiente y próximo cobro.",
+                style = MaterialTheme.typography.bodySmall,
                 color = AppColors.Gray600
             )
 
-            Text(
-                text = state.collectedMonthFormatted,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.AccentTeal
+            if (rows.isEmpty()) {
+                Text(
+                    text = "No hay clientes activos con cartera vigente.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppColors.Gray600
+                )
+            } else {
+                rows.forEach { row ->
+                    PremiumClientSnapshotRow(
+                        row = row,
+                        currencySymbol = currencySymbol
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PremiumClientSnapshotRow(
+    row: PremiumClientSnapshot,
+    currencySymbol: String
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = AppColors.Background,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = AppColors.Divider
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AppSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ClientAvatar(
+                fullName = row.clientName,
+                size = 42.dp
             )
 
-            Text(
-                text = "Cobrado este mes · ${state.paymentsMonth} pagos",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                CompactInfo(
-                    title = "Pendiente",
-                    value = state.totalPendingFormatted,
-                    modifier = Modifier.weight(1f),
-                    warning = state.totalPending > 0.0
+                Text(
+                    text = row.clientName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.Gray900
                 )
 
-                CompactInfo(
-                    title = "Vencido",
-                    value = state.overdueAmountFormatted,
-                    modifier = Modifier.weight(1f),
-                    danger = state.overdueAmount > 0.0
+                Text(
+                    text = "Pendiente: ${formatMoney(row.pendingAmount, currencySymbol)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColors.Gray600
+                )
+
+                Text(
+                    text = "Próximo cobro: ${row.nextDueText}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (row.overdueAmount > 0.0) AppColors.Error else AppColors.Gray600
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = formatMoney(row.overdueAmount, currencySymbol),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (row.overdueAmount > 0.0) AppColors.Error else AppColors.Success
+                )
+
+                Text(
+                    text = if (row.overdueAmount > 0.0) "Vencido" else "Al día",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (row.overdueAmount > 0.0) AppColors.Error else AppColors.Success
                 )
             }
         }
     }
+}
+
+private data class PremiumClientSnapshot(
+    val clientName: String,
+    val pendingAmount: Double,
+    val overdueAmount: Double,
+    val nextDueText: String
+)
+
+private fun buildPremiumClientSnapshots(): List<PremiumClientSnapshot> {
+    return LocalClientRepository
+        .getClients()
+        .filter { client -> FinancialOperationRules.canShowClientInOperationalLists(client) }
+        .mapNotNull { client ->
+            val loans = LocalLoanRepository
+                .getLoansByClient(client.id)
+                .filter { loan -> loan.status.name == "ACTIVE" }
+
+            if (loans.isEmpty()) {
+                return@mapNotNull null
+            }
+
+            val totalExpected = loans.sumOf { loan -> loan.totalExpectedAmount }
+            val totalPaid = loans.sumOf { loan ->
+                LocalPaymentRepository.getTotalPaidByLoan(loan.id)
+            }
+            val pending = max(totalExpected - totalPaid, 0.0)
+
+            val installments = loans.flatMap { loan ->
+                LocalInstallmentRepository.getInstallmentsByLoan(loan.id)
+            }
+
+            val overdueAmount = installments
+                .filter { installment -> installment.status == InstallmentStatus.OVERDUE }
+                .sumOf { installment -> installment.pendingAmount }
+
+            val nextDue = installments
+                .filter { installment ->
+                    installment.status != InstallmentStatus.PAID &&
+                        installment.status != InstallmentStatus.CANCELLED
+                }
+                .minByOrNull { installment -> installment.dueDateMillis }
+
+            PremiumClientSnapshot(
+                clientName = client.fullName,
+                pendingAmount = pending,
+                overdueAmount = overdueAmount,
+                nextDueText = nextDue?.let { installment -> formatDashboardDate(installment.dueDateMillis) } ?: "Sin cuota pendiente"
+            )
+        }
+        .filter { row -> row.pendingAmount > 0.0 || row.overdueAmount > 0.0 }
+        .sortedWith(
+            compareByDescending<PremiumClientSnapshot> { row -> row.overdueAmount }
+                .thenByDescending { row -> row.pendingAmount }
+        )
+        .take(6)
 }
 
 @Composable
@@ -949,6 +1261,11 @@ private fun isToday(millis: Long): Boolean {
         target.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
 }
 
+
+private fun formatDashboardDate(millis: Long): String {
+    return SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(millis))
+}
+
 private fun formatMoney(
     value: Double,
     currencySymbol: String
@@ -971,6 +1288,8 @@ private fun formatShortMoney(
 private fun formatPercent(value: Double): String {
     return DecimalFormat("#,##0%").format(value.coerceIn(0.0, 1.0))
 }
+
+
 
 
 
