@@ -1,12 +1,19 @@
 ﻿package com.controlprestamos.features.loans.presentation
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -18,9 +25,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import com.controlprestamos.core.ui.components.AppCard
 import com.controlprestamos.core.ui.components.AppDatePickerField
 import com.controlprestamos.core.ui.components.AppTextField
@@ -29,15 +38,17 @@ import com.controlprestamos.core.ui.components.EmptyState
 import com.controlprestamos.core.ui.components.PrimaryButton
 import com.controlprestamos.core.ui.components.SecondaryButton
 import com.controlprestamos.core.ui.theme.AppColors
+import com.controlprestamos.core.ui.theme.AppRadius
 import com.controlprestamos.core.ui.theme.AppSpacing
+import com.controlprestamos.features.clients.data.LocalClientRepository
 import com.controlprestamos.features.installments.data.LocalInstallmentRepository
+import com.controlprestamos.features.installments.domain.model.InstallmentStatus
 import com.controlprestamos.features.loans.data.LocalLoanRepository
 import com.controlprestamos.features.loans.domain.model.CreateLoanInput
 import com.controlprestamos.features.loans.domain.model.Loan
 import com.controlprestamos.features.loans.domain.model.LoanStatus
-import com.controlprestamos.core.rules.FinancialOperationRules
-import com.controlprestamos.features.loans.domain.model.RepaymentPlanType
 import com.controlprestamos.features.loans.domain.model.UpdateLoanInput
+import com.controlprestamos.features.loans.domain.model.RepaymentPlanType
 import com.controlprestamos.features.loans.domain.validation.LoanFormValidator
 import com.controlprestamos.features.payments.data.LocalPaymentRepository
 import com.controlprestamos.features.preferences.data.LocalPreferencesRepository
@@ -45,6 +56,7 @@ import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.max
 
 @Composable
 fun EditLoanScreen(
@@ -56,66 +68,126 @@ fun EditLoanScreen(
     val preferences = LocalPreferencesRepository.getPreferences(context)
 
     val loan = LocalLoanRepository.getLoanById(loanId)
-    val paymentHistory = LocalPaymentRepository.getPaymentHistoryByLoan(loanId)
-    val totalPaid = LocalPaymentRepository.getTotalPaidByLoan(loanId)
+    val client = loan?.let { LocalClientRepository.getClientById(it.clientId) }
 
-    var principalAmount by rememberSaveable(loanId) {
-        mutableStateOf(loan?.principalAmount?.toString().orEmpty())
+    if (loan == null) {
+        Scaffold(
+            topBar = {
+                AppTopBar(
+                    title = "Editar préstamo",
+                    subtitle = "Préstamo no encontrado",
+                    showBack = true,
+                    showMore = false,
+                    showMenu = false,
+                    showNotifications = false,
+                    onBack = onNavigateBack
+                )
+            },
+            containerColor = AppColors.Background
+        ) { innerPadding ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                color = AppColors.Background
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(AppSpacing.screenHorizontal),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    EmptyState(
+                        title = "Préstamo no encontrado",
+                        description = "No pudimos encontrar el préstamo que quieres editar.",
+                        action = {
+                            SecondaryButton(
+                                text = "Volver",
+                                onClick = onNavigateBack
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
+        return
     }
 
-    var interestRatePercent by rememberSaveable(loanId) {
-        mutableStateOf(loan?.interestRatePercent?.toString().orEmpty())
+    val safeLoan: Loan = loan ?: return
+
+    val activePayments = LocalPaymentRepository.getPaymentsByLoan(safeLoan.id)
+    val paymentHistory = LocalPaymentRepository.getPaymentHistoryByLoan(safeLoan.id)
+    val installments = LocalInstallmentRepository.getInstallmentsByLoan(safeLoan.id)
+
+    val hasPaymentHistory = activePayments.isNotEmpty() || paymentHistory.isNotEmpty()
+
+    val hasTouchedInstallments = installments.any { installment ->
+        installment.paidAmount > 0.0 ||
+            installment.status == InstallmentStatus.PARTIAL ||
+            installment.status == InstallmentStatus.PAID
     }
 
-    var termInDays by rememberSaveable(loanId) {
-        mutableStateOf(loan?.termInDays?.toString().orEmpty())
+    val isClosedLoan = safeLoan.status == LoanStatus.PAID || safeLoan.status == LoanStatus.CANCELLED
+
+    val financialLocked = hasPaymentHistory || hasTouchedInstallments || isClosedLoan
+
+    var principalAmount by rememberSaveable {
+        mutableStateOf(formatInputAmount(safeLoan.principalAmount))
     }
 
-    var description by rememberSaveable(loanId) {
-        mutableStateOf(loan?.description.orEmpty())
+    var interestRatePercent by rememberSaveable {
+        mutableStateOf(formatInputAmount(safeLoan.interestRatePercent))
     }
 
-    var repaymentPlanTypeName by rememberSaveable(loanId) {
-        mutableStateOf(loan?.repaymentPlanType?.name ?: RepaymentPlanType.INSTALLMENTS.name)
+    var termInDays by rememberSaveable {
+        mutableStateOf(safeLoan.termInDays.toString())
+    }
+
+    var description by rememberSaveable {
+        mutableStateOf(safeLoan.description)
+    }
+
+    var repaymentPlanTypeName by rememberSaveable {
+        mutableStateOf(safeLoan.repaymentPlanType.name)
+    }
+
+    val repaymentPlanType = runCatching {
+        RepaymentPlanType.valueOf(repaymentPlanTypeName)
+    }.getOrDefault(safeLoan.repaymentPlanType)
+
+    var startDateMillis by rememberSaveable {
+        mutableStateOf(safeLoan.startDateMillis)
     }
 
     var formError by rememberSaveable {
         mutableStateOf<String?>(null)
     }
 
-    var actionMessage by rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
+    val principal = parseAmount(principalAmount) ?: 0.0
+    val interest = parseAmount(interestRatePercent) ?: 0.0
+    val days = termInDays.trim().toIntOrNull() ?: 0
 
-    var startDateMillis by rememberSaveable(loanId) {
-        mutableStateOf(loan?.startDateMillis ?: loan?.createdAtMillis ?: System.currentTimeMillis())
-    }
+    val totalExpected = calculateTotalExpected(
+        principal = principal,
+        interestPercent = interest
+    )
 
-    val repaymentPlanType = runCatching {
-        RepaymentPlanType.valueOf(repaymentPlanTypeName)
-    }.getOrDefault(RepaymentPlanType.INSTALLMENTS)
-
-    val principal = principalAmount.replace(",", ".").toDoubleOrNull() ?: 0.0
-    val interest = interestRatePercent.replace(",", ".").toDoubleOrNull() ?: 0.0
-    val term = termInDays.toIntOrNull() ?: 0
-    val safeTerm = if (term > 0) term else 0
-    val totalExpected = principal + (principal * interest / 100.0)
-    val installmentPreviewAmount = when (repaymentPlanType) {
-        RepaymentPlanType.SINGLE_PAYMENT -> totalExpected
-        RepaymentPlanType.INSTALLMENTS -> if (safeTerm > 0) totalExpected / safeTerm else 0.0
+    val estimatedDaily = if (days > 0) {
+        totalExpected / days
+    } else {
+        0.0
     }
 
     Scaffold(
         topBar = {
             AppTopBar(
                 title = "Editar préstamo",
-                subtitle = when {
-                    loan == null -> "Préstamo no encontrado"
-                    paymentHistory.isNotEmpty() -> "Modo protegido"
-                    loan.status == LoanStatus.PAID -> "Préstamo pagado"
-                    else -> "Sin movimientos financieros"
-                },
+                subtitle = client?.fullName ?: "Préstamo",
                 showBack = true,
+                showMore = false,
+                showMenu = false,
+                showNotifications = false,
                 onBack = onNavigateBack
             )
         },
@@ -134,113 +206,78 @@ fun EditLoanScreen(
                     .padding(AppSpacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
-                if (loan == null) {
-                    EmptyState(
-                        title = "Préstamo no encontrado",
-                        description = "No pudimos encontrar el préstamo solicitado.",
-                        action = {
-                            SecondaryButton(
-                                text = "Volver",
-                                onClick = onNavigateBack
-                            )
+                Spacer(modifier = Modifier.height(AppSpacing.xs))
+
+                EditLoanHeaderCard(
+                    loan = safeLoan,
+                    clientName = client?.fullName ?: "Cliente no encontrado",
+                    currencySymbol = preferences.currencySymbol,
+                    paymentCount = activePayments.size + paymentHistory.size,
+                    installmentCount = installments.size,
+                    financialLocked = financialLocked
+                )
+
+                if (financialLocked) {
+                    LockedFinancialRulesCard(
+                        hasPaymentHistory = hasPaymentHistory,
+                        hasTouchedInstallments = hasTouchedInstallments,
+                        isClosedLoan = isClosedLoan
+                    )
+
+                    LockedFinancialSummaryCard(
+                        loan = safeLoan,
+                        currencySymbol = preferences.currencySymbol
+                    )
+                } else {
+                    EditableFinancialCard(
+                        principalAmount = principalAmount,
+                        onPrincipalAmountChange = {
+                            principalAmount = it
+                            formError = null
+                        },
+                        interestRatePercent = interestRatePercent,
+                        onInterestRatePercentChange = {
+                            interestRatePercent = it
+                            formError = null
+                        },
+                        termInDays = termInDays,
+                        onTermInDaysChange = {
+                            termInDays = it
+                            formError = null
                         }
                     )
 
-                    return@Column
-                }
-
-                if (FinancialOperationRules.isClosedLoan(loan) && loan.status == LoanStatus.CANCELLED) {
-                    EmptyState(
-                        title = "Préstamo cancelado",
-                        description = "No puedes editar un préstamo cancelado.",
-                        action = {
-                            SecondaryButton(
-                                text = "Volver",
-                                onClick = onNavigateBack
-                            )
+                    EditablePlanCard(
+                        startDateMillis = startDateMillis,
+                        onStartDateChange = {
+                            startDateMillis = it
+                            formError = null
+                        },
+                        repaymentPlanType = repaymentPlanType,
+                        onPlanChange = {
+                            repaymentPlanTypeName = it.name
+                            formError = null
                         }
                     )
 
-                    return@Column
-                }
-
-                val isFinanciallyProtected = paymentHistory.isNotEmpty() || loan.status == LoanStatus.PAID
-
-                if (isFinanciallyProtected) {
-                    ProtectedLoanEditContent(
-                        loan = loan,
-                        description = description,
-                        totalPaid = totalPaid,
-                        paymentHistoryCount = paymentHistory.size,
+                    EditLoanPreviewCard(
                         currencySymbol = preferences.currencySymbol,
-                        onDescriptionChange = {
-                            description = it
-                            formError = null
-                            actionMessage = null
-                        },
-                        formError = formError,
-                        actionMessage = actionMessage,
-                        onSaveDescription = {
-                            val updatedLoan = LocalLoanRepository.updateLoanDescription(
-                                loanId = loan.id,
-                                description = description
-                            )
-
-                            if (updatedLoan == null) {
-                                formError = "No se pudo actualizar la nota del préstamo."
-                                return@ProtectedLoanEditContent
-                            }
-
-                            formError = null
-                            actionMessage = "Nota actualizada. Los datos financieros no fueron modificados."
-                            onLoanUpdated(updatedLoan.id)
-                        },
-                        onNavigateBack = onNavigateBack
+                        principal = principal,
+                        interest = interest,
+                        termInDays = days,
+                        totalExpected = totalExpected,
+                        estimatedDaily = estimatedDaily,
+                        startDateMillis = startDateMillis,
+                        planText = planLabel(repaymentPlanType)
                     )
-
-                    return@Column
                 }
 
-                EditableLoanFinancialForm(
-                    principalAmount = principalAmount,
-                    onPrincipalChange = {
-                        principalAmount = it.replace(",", ".")
-                        formError = null
-                        actionMessage = null
-                    },
-                    interestRatePercent = interestRatePercent,
-                    onInterestChange = {
-                        interestRatePercent = it.replace(",", ".")
-                        formError = null
-                        actionMessage = null
-                    },
-                    termInDays = termInDays,
-                    onTermChange = {
-                        termInDays = it.filter { char -> char.isDigit() }
-                        formError = null
-                        actionMessage = null
-                    },
+                EditDescriptionCard(
                     description = description,
                     onDescriptionChange = {
                         description = it
                         formError = null
-                        actionMessage = null
-                    },
-                    repaymentPlanType = repaymentPlanType,
-                    onRepaymentPlanTypeChange = {
-                        repaymentPlanTypeName = it.name
-                        formError = null
-                        actionMessage = null
-                    },
-                    startDateMillis = startDateMillis,
-                    onStartDateChange = {
-                        startDateMillis = it
-                        formError = null
-                        actionMessage = null
-                    },
-                    totalExpected = totalExpected,
-                    installmentPreviewAmount = installmentPreviewAmount,
-                    currencySymbol = preferences.currencySymbol
+                    }
                 )
 
                 if (!formError.isNullOrBlank()) {
@@ -248,16 +285,32 @@ fun EditLoanScreen(
                         Text(
                             text = formError.orEmpty(),
                             style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
                             color = AppColors.Error
                         )
                     }
                 }
 
                 PrimaryButton(
-                    text = "Guardar cambios",
+                    text = if (financialLocked) {
+                        "Guardar descripción"
+                    } else {
+                        "Guardar cambios"
+                    },
                     onClick = {
-                        val validationInput = CreateLoanInput(
-                            clientId = loan.clientId,
+                        if (financialLocked) {
+                            val updatedLoan = LocalLoanRepository.updateLoanDescription(
+                                loanId = safeLoan.id,
+                                description = description.trim()
+                            )
+
+                            onLoanUpdated(updatedLoan?.id ?: safeLoan.id)
+
+                            return@PrimaryButton
+                        }
+
+                        val input = CreateLoanInput(
+                            clientId = safeLoan.clientId,
                             principalAmount = principalAmount,
                             interestRatePercent = interestRatePercent,
                             termInDays = termInDays,
@@ -266,34 +319,30 @@ fun EditLoanScreen(
                             startDateMillis = startDateMillis
                         )
 
-                        val validation = LoanFormValidator.validate(validationInput)
+                        val validation = LoanFormValidator.validate(input)
 
                         if (!validation.isValid) {
                             formError = validation.errorMessage
                             return@PrimaryButton
                         }
 
-                        val updatedLoan = LocalLoanRepository.updateLoan(
-                            UpdateLoanInput(
-                                loanId = loan.id,
-                                principalAmount = principalAmount,
-                                interestRatePercent = interestRatePercent,
-                                termInDays = termInDays,
-                                description = description,
-                                repaymentPlanType = repaymentPlanType,
-                                startDateMillis = startDateMillis
-                            )
+                        val updateInput = UpdateLoanInput(
+                            loanId = safeLoan.id,
+                            principalAmount = principalAmount,
+                            interestRatePercent = interestRatePercent,
+                            termInDays = termInDays,
+                            description = description,
+                            repaymentPlanType = repaymentPlanType,
+                            startDateMillis = startDateMillis
                         )
 
-                        if (updatedLoan == null) {
-                            formError = "No se pudo actualizar el préstamo. Si ya tiene pagos, solo puedes editar la nota."
-                            return@PrimaryButton
-                        }
+                        val updatedLoan = LocalLoanRepository.updateLoan(updateInput)
 
-                        LocalInstallmentRepository.removeInstallmentsForLoan(updatedLoan.id)
-                        LocalInstallmentRepository.generateInstallmentsForLoan(updatedLoan)
+                        LocalInstallmentRepository.rebuildInstallmentsForLoan(
+                            loanId = updatedLoan?.id ?: safeLoan.id
+                        )
 
-                        onLoanUpdated(updatedLoan.id)
+                        onLoanUpdated(updatedLoan?.id ?: safeLoan.id)
                     }
                 )
 
@@ -301,349 +350,557 @@ fun EditLoanScreen(
                     text = "Cancelar",
                     onClick = onNavigateBack
                 )
+
+                Spacer(modifier = Modifier.height(AppSpacing.md))
             }
         }
     }
 }
 
 @Composable
-private fun ProtectedLoanEditContent(
+private fun EditLoanHeaderCard(
     loan: Loan,
-    description: String,
-    totalPaid: Double,
-    paymentHistoryCount: Int,
+    clientName: String,
     currencySymbol: String,
-    onDescriptionChange: (String) -> Unit,
-    formError: String?,
-    actionMessage: String?,
-    onSaveDescription: () -> Unit,
-    onNavigateBack: () -> Unit
+    paymentCount: Int,
+    installmentCount: Int,
+    financialLocked: Boolean
 ) {
-    AppCard(
+    ReferenceCard {
+        Text(
+            text = "Resumen del préstamo",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Text(
+            text = clientName,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.Gray900
+        )
+
+        Text(
+            text = loan.description.ifBlank { "Préstamo #${loan.id.takeLast(4)}" },
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppColors.Gray600
+        )
+
+        Text(
+            text = formatMoney(loan.totalExpectedAmount, currencySymbol),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.PrimaryDark
+        )
+
+        Text(
+            text = "Total esperado actual",
+            style = MaterialTheme.typography.bodySmall,
+            color = AppColors.Gray600
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Estado",
+                value = statusLabel(loan.status),
+                modifier = Modifier.weight(1f)
+            )
+
+            InfoBox(
+                title = "Protección",
+                value = if (financialLocked) "Activa" else "Editable",
+                modifier = Modifier.weight(1f),
+                highlight = financialLocked
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Pagos",
+                value = paymentCount.toString(),
+                modifier = Modifier.weight(1f)
+            )
+
+            InfoBox(
+                title = "Cuotas",
+                value = installmentCount.toString(),
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun LockedFinancialRulesCard(
+    hasPaymentHistory: Boolean,
+    hasTouchedInstallments: Boolean,
+    isClosedLoan: Boolean
+) {
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        bordered = true
+        color = AppColors.Warning.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(AppRadius.cardLarge),
+        border = BorderStroke(
+            width = 1.dp,
+            color = AppColors.Warning.copy(alpha = 0.28f)
+        )
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            modifier = Modifier.padding(AppSpacing.cardPaddingLarge),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
         ) {
             Text(
-                text = "Edición financiera bloqueada",
-                style = MaterialTheme.typography.titleLarge,
+                text = "Edición financiera protegida",
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Warning
             )
 
             Text(
-                text = "Este préstamo ya tiene movimientos financieros o está saldado. Para proteger saldos, cuotas, recibos, reportes y backup, no se puede cambiar monto, interés, plazo, plan ni fecha de inicio.",
+                text = "Este préstamo ya tiene movimiento financiero o está cerrado. Para evitar descuadres, solo puedes editar la descripción.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+                color = AppColors.Gray700
             )
 
-            Text(
-                text = "Solo puedes actualizar la descripción o nota interna.",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = AppColors.Gray900
-            )
+            if (hasPaymentHistory) {
+                Text(
+                    text = "• Tiene pagos registrados.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColors.Gray600
+                )
+            }
+
+            if (hasTouchedInstallments) {
+                Text(
+                    text = "• Tiene cuotas abonadas o pagadas.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColors.Gray600
+                )
+            }
+
+            if (isClosedLoan) {
+                Text(
+                    text = "• El préstamo está pagado o cancelado.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AppColors.Gray600
+                )
+            }
         }
     }
-
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            Text(
-                text = "Datos financieros protegidos",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
-            )
-
-            ReadOnlyLoanField(
-                title = "Monto prestado",
-                value = formatMoney(loan.principalAmount, currencySymbol)
-            )
-
-            ReadOnlyLoanField(
-                title = "Interés",
-                value = "${loan.interestRatePercent}%"
-            )
-
-            ReadOnlyLoanField(
-                title = "Total esperado",
-                value = formatMoney(loan.totalExpectedAmount, currencySymbol)
-            )
-
-            ReadOnlyLoanField(
-                title = "Pagado activo",
-                value = formatMoney(totalPaid, currencySymbol)
-            )
-
-            ReadOnlyLoanField(
-                title = "Plazo / cuotas",
-                value = loan.termInDays.toString()
-            )
-
-            ReadOnlyLoanField(
-                title = "Tipo de plan",
-                value = loan.repaymentPlanType.description
-            )
-
-            ReadOnlyLoanField(
-                title = "Fecha de inicio",
-                value = formatDate(loan.startDateMillis)
-            )
-
-            ReadOnlyLoanField(
-                title = "Movimientos en historial",
-                value = paymentHistoryCount.toString()
-            )
-        }
-    }
-
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            Text(
-                text = "Nota editable",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
-            )
-
-            AppTextField(
-                value = description,
-                onValueChange = onDescriptionChange,
-                label = "Descripción / nota",
-                singleLine = false,
-                supportingText = "Esta nota no afecta saldos, cuotas ni reportes financieros."
-            )
-        }
-    }
-
-    if (!formError.isNullOrBlank()) {
-        AppCard(bordered = true) {
-            Text(
-                text = formError,
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Error
-            )
-        }
-    }
-
-    if (!actionMessage.isNullOrBlank()) {
-        AppCard(bordered = true) {
-            Text(
-                text = actionMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Success
-            )
-        }
-    }
-
-    PrimaryButton(
-        text = "Guardar nota",
-        onClick = onSaveDescription
-    )
-
-    SecondaryButton(
-        text = "Volver",
-        onClick = onNavigateBack
-    )
 }
 
 @Composable
-private fun ReadOnlyLoanField(
-    title: String,
-    value: String
+private fun LockedFinancialSummaryCard(
+    loan: Loan,
+    currencySymbol: String
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
-    ) {
+    ReferenceCard {
         Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
+            text = "Condiciones bloqueadas",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Capital",
+                value = formatMoney(loan.principalAmount, currencySymbol),
+                modifier = Modifier.weight(1f)
+            )
+
+            InfoBox(
+                title = "Interés",
+                value = "${DecimalFormat("#,##0.##").format(loan.interestRatePercent)}%",
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Plazo",
+                value = "${loan.termInDays} días",
+                modifier = Modifier.weight(1f)
+            )
+
+            InfoBox(
+                title = "Plan",
+                value = planLabel(loan.repaymentPlanType),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Inicio",
+                value = formatDate(loan.startDateMillis),
+                modifier = Modifier.weight(1f)
+            )
+
+            InfoBox(
+                title = "Estimado diario",
+                value = formatMoney(loan.estimatedDailyAmount, currencySymbol),
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditableFinancialCard(
+    principalAmount: String,
+    onPrincipalAmountChange: (String) -> Unit,
+    interestRatePercent: String,
+    onInterestRatePercentChange: (String) -> Unit,
+    termInDays: String,
+    onTermInDaysChange: (String) -> Unit
+) {
+    ReferenceCard {
+        Text(
+            text = "Condiciones",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Text(
+            text = "Este préstamo aún no tiene pagos aplicados. Puedes ajustar sus condiciones y se recalcularán las cuotas.",
+            style = MaterialTheme.typography.bodySmall,
             color = AppColors.Gray600
         )
 
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = AppColors.Gray900
+        AppTextField(
+            value = principalAmount,
+            onValueChange = onPrincipalAmountChange,
+            label = "Capital",
+            keyboardType = KeyboardType.Number
+        )
+
+        AppTextField(
+            value = interestRatePercent,
+            onValueChange = onInterestRatePercentChange,
+            label = "Interés %",
+            keyboardType = KeyboardType.Number
+        )
+
+        AppTextField(
+            value = termInDays,
+            onValueChange = onTermInDaysChange,
+            label = "Plazo en días",
+            keyboardType = KeyboardType.Number
         )
     }
 }
 
 @Composable
-private fun EditableLoanFinancialForm(
-    principalAmount: String,
-    onPrincipalChange: (String) -> Unit,
-    interestRatePercent: String,
-    onInterestChange: (String) -> Unit,
-    termInDays: String,
-    onTermChange: (String) -> Unit,
-    description: String,
-    onDescriptionChange: (String) -> Unit,
-    repaymentPlanType: RepaymentPlanType,
-    onRepaymentPlanTypeChange: (RepaymentPlanType) -> Unit,
+private fun EditablePlanCard(
     startDateMillis: Long,
     onStartDateChange: (Long) -> Unit,
-    totalExpected: Double,
-    installmentPreviewAmount: Double,
-    currencySymbol: String
+    repaymentPlanType: RepaymentPlanType,
+    onPlanChange: (RepaymentPlanType) -> Unit
 ) {
-    AppCard(bordered = true) {
+    ReferenceCard {
+        Text(
+            text = "Inicio y plan",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        AppDatePickerField(
+            label = "Fecha de inicio",
+            selectedDateMillis = startDateMillis,
+            onDateSelected = onStartDateChange,
+            helperText = "Las cuotas se recalcularán con esta fecha."
+        )
+
+        Text(
+            text = "Tipo de plan",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = AppColors.Gray900
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            PlanButton(
+                text = "Cuotas",
+                selected = repaymentPlanType == RepaymentPlanType.INSTALLMENTS,
+                modifier = Modifier.weight(1f),
+                onClick = { onPlanChange(RepaymentPlanType.INSTALLMENTS) }
+            )
+
+            PlanButton(
+                text = "Pago único",
+                selected = repaymentPlanType == RepaymentPlanType.SINGLE_PAYMENT,
+                modifier = Modifier.weight(1f),
+                onClick = { onPlanChange(RepaymentPlanType.SINGLE_PAYMENT) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditDescriptionCard(
+    description: String,
+    onDescriptionChange: (String) -> Unit
+) {
+    ReferenceCard {
+        Text(
+            text = "Descripción",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        AppTextField(
+            value = description,
+            onValueChange = onDescriptionChange,
+            label = "Descripción del préstamo",
+            singleLine = false
+        )
+    }
+}
+
+@Composable
+private fun EditLoanPreviewCard(
+    currencySymbol: String,
+    principal: Double,
+    interest: Double,
+    termInDays: Int,
+    totalExpected: Double,
+    estimatedDaily: Double,
+    startDateMillis: Long,
+    planText: String
+) {
+    ReferenceCard {
+        Text(
+            text = "Resumen antes de guardar",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Text(
+            text = formatMoney(totalExpected, currencySymbol),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = if (totalExpected > 0.0) AppColors.PrimaryDark else AppColors.Gray500
+        )
+
+        Text(
+            text = "Nuevo total esperado",
+            style = MaterialTheme.typography.bodySmall,
+            color = AppColors.Gray600
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Capital",
+                value = formatMoney(principal, currencySymbol),
+                modifier = Modifier.weight(1f)
+            )
+
+            InfoBox(
+                title = "Interés",
+                value = "${DecimalFormat("#,##0.##").format(interest)}%",
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Plazo",
+                value = "$termInDays días",
+                modifier = Modifier.weight(1f)
+            )
+
+            InfoBox(
+                title = "Estimado diario",
+                value = formatMoney(estimatedDaily, currencySymbol),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            InfoBox(
+                title = "Inicio",
+                value = formatDate(startDateMillis),
+                modifier = Modifier.weight(1f)
+            )
+
+            InfoBox(
+                title = "Plan",
+                value = planText,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun InfoBox(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    highlight: Boolean = false
+) {
+    Surface(
+        modifier = modifier.heightIn(min = 68.dp),
+        color = if (highlight) AppColors.Warning.copy(alpha = 0.08f) else AppColors.SurfaceMuted,
+        shape = RoundedCornerShape(AppRadius.card),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (highlight) AppColors.Warning.copy(alpha = 0.25f) else AppColors.Border
+        )
+    ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
-                text = "Tipo de pago",
-                style = MaterialTheme.typography.titleMedium,
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = AppColors.Gray500
+            )
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = if (highlight) AppColors.Warning else AppColors.Gray900
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlanButton(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val color = if (selected) AppColors.AccentTeal else AppColors.Gray500
+
+    Surface(
+        modifier = modifier
+            .height(42.dp)
+            .clip(RoundedCornerShape(AppRadius.pill))
+            .clickable { onClick() },
+        color = if (selected) color.copy(alpha = 0.12f) else AppColors.SurfaceMuted,
+        shape = RoundedCornerShape(AppRadius.pill),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (selected) color.copy(alpha = 0.38f) else AppColors.Border
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = AppSpacing.xs),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = AppColors.Gray900
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-            ) {
-                if (repaymentPlanType == RepaymentPlanType.SINGLE_PAYMENT) {
-                    PrimaryButton(
-                        text = "Pago único",
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            onRepaymentPlanTypeChange(RepaymentPlanType.SINGLE_PAYMENT)
-                        }
-                    )
-                } else {
-                    SecondaryButton(
-                        text = "Pago único",
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            onRepaymentPlanTypeChange(RepaymentPlanType.SINGLE_PAYMENT)
-                        }
-                    )
-                }
-
-                if (repaymentPlanType == RepaymentPlanType.INSTALLMENTS) {
-                    PrimaryButton(
-                        text = "Por cuotas",
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            onRepaymentPlanTypeChange(RepaymentPlanType.INSTALLMENTS)
-                        }
-                    )
-                } else {
-                    SecondaryButton(
-                        text = "Por cuotas",
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            onRepaymentPlanTypeChange(RepaymentPlanType.INSTALLMENTS)
-                        }
-                    )
-                }
-            }
-
-            Text(
-                text = repaymentPlanType.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+                color = color
             )
         }
     }
+}
 
-    AppCard(bordered = true) {
+@Composable
+private fun ReferenceCard(
+    content: @Composable ColumnScope.() -> Unit
+) {
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            AppTextField(
-                value = principalAmount,
-                onValueChange = onPrincipalChange,
-                label = "Monto prestado",
-                keyboardType = KeyboardType.Number
-            )
-
-            AppTextField(
-                value = interestRatePercent,
-                onValueChange = onInterestChange,
-                label = "Interés (%)",
-                keyboardType = KeyboardType.Number
-            )
-
-            AppTextField(
-                value = termInDays,
-                onValueChange = onTermChange,
-                label = if (repaymentPlanType == RepaymentPlanType.SINGLE_PAYMENT) {
-                    "Días hasta el pago"
-                } else {
-                    "Cantidad de cuotas diarias"
-                },
-                keyboardType = KeyboardType.Number
-            )
-
-            AppDatePickerField(
-                label = "Fecha de inicio",
-                selectedDateMillis = startDateMillis,
-                onDateSelected = onStartDateChange,
-                helperText = "Al guardar, las cuotas se recalcularán desde esta fecha."
-            )
-
-            AppTextField(
-                value = description,
-                onValueChange = onDescriptionChange,
-                label = "Descripción / nota",
-                singleLine = false
-            )
-        }
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            content = content
+        )
     }
+}
 
-    AppCard(bordered = true) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
-        ) {
-            Text(
-                text = "Vista previa",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = AppColors.Gray900
-            )
+private fun calculateTotalExpected(
+    principal: Double,
+    interestPercent: Double
+): Double {
+    if (principal <= 0.0) return 0.0
 
-            Text(
-                text = "Total a pagar: ${formatMoney(totalExpected, currencySymbol)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
-            )
+    val interestAmount = principal * (max(interestPercent, 0.0) / 100.0)
 
-            Text(
-                text = when (repaymentPlanType) {
-                    RepaymentPlanType.SINGLE_PAYMENT -> "Pago único: ${formatMoney(installmentPreviewAmount, currencySymbol)}"
-                    RepaymentPlanType.INSTALLMENTS -> "Cuota diaria estimada: ${formatMoney(installmentPreviewAmount, currencySymbol)}"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
-            )
-        }
+    return principal + interestAmount
+}
+
+private fun planLabel(value: RepaymentPlanType): String {
+    return when (value) {
+        RepaymentPlanType.SINGLE_PAYMENT -> "Pago único"
+        RepaymentPlanType.INSTALLMENTS -> "Cuotas"
     }
+}
+
+private fun statusLabel(value: LoanStatus): String {
+    return when (value) {
+        LoanStatus.ACTIVE -> "Activo"
+        LoanStatus.PAID -> "Pagado"
+        LoanStatus.CANCELLED -> "Cancelado"
+    }
+}
+
+private fun parseAmount(value: String): Double? {
+    return value
+        .replace(",", ".")
+        .trim()
+        .toDoubleOrNull()
+}
+
+private fun formatInputAmount(value: Double): String {
+    return DecimalFormat("#.##").format(value)
 }
 
 private fun formatMoney(
     value: Double,
     currencySymbol: String
 ): String {
-    return currencySymbol + DecimalFormat("#,##0.00").format(value)
+    return currencySymbol + DecimalFormat("#,##0").format(value)
 }
 
 private fun formatDate(millis: Long): String {
-    return SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        .format(Date(millis))
+    return SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(millis))
 }
+
+
 
 
