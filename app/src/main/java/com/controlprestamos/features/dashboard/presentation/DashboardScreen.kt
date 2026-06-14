@@ -97,6 +97,8 @@ fun DashboardScreen(
             ) {
                 PremiumPortfolioTotalsCard(currencySymbol = preferences.currencySymbol)
 
+                PremiumOperationalStatsCard(currencySymbol = preferences.currencySymbol)
+
                 SectionTitle(
                     title = "Cobranza",
                     subtitle = "Pagos recibidos según fecha real registrada."
@@ -192,9 +194,9 @@ fun DashboardScreen(
 
                 SevenDayCollectionCard(state = state)
 
-                PortfolioHealthCard(state = state)
+                PremiumPortfolioHealthPanel(currencySymbol = preferences.currencySymbol)
 
-                DashboardAlertsCard(state = state)
+                PremiumCollectionAlertsPanel(currencySymbol = preferences.currencySymbol)
 
                 PremiumClientSnapshotCard(currencySymbol = preferences.currencySymbol)
             }
@@ -569,6 +571,542 @@ private fun buildPremiumClientSnapshots(): List<PremiumClientSnapshot> {
         .take(6)
 }
 
+
+@Composable
+private fun PremiumOperationalStatsCard(
+    currencySymbol: String
+) {
+    val stats = buildPremiumDashboardStats(currencySymbol)
+
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
+        ) {
+            Text(
+                text = "Movimiento rápido",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Gray900
+            )
+
+            Text(
+                text = "Cobros reales por día, semana y mes. Ideal para saber cómo va la operación.",
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.Gray600
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            ) {
+                PremiumDashboardStatPill(
+                    title = "Cobrado hoy",
+                    value = formatMoney(stats.collectedToday, currencySymbol),
+                    subtitle = "${stats.dueTodayInstallments} cuotas para hoy",
+                    modifier = Modifier.weight(1f)
+                )
+
+                PremiumDashboardStatPill(
+                    title = "Esta semana",
+                    value = formatMoney(stats.collectedWeek, currencySymbol),
+                    subtitle = "Promedio: ${formatMoney(stats.dailyAverage, currencySymbol)}",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            ) {
+                PremiumDashboardStatPill(
+                    title = "Este mes",
+                    value = formatMoney(stats.collectedMonth, currencySymbol),
+                    subtitle = "Pagos activos",
+                    modifier = Modifier.weight(1f)
+                )
+
+                PremiumDashboardStatPill(
+                    title = "Cobro pendiente",
+                    value = formatMoney(stats.todayDueAmount + stats.overdueAmount, currencySymbol),
+                    subtitle = "Hoy + vencido",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PremiumPortfolioHealthPanel(
+    currencySymbol: String
+) {
+    val stats = buildPremiumDashboardStats(currencySymbol)
+
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = "Salud de cartera",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.Gray900
+                    )
+
+                    Text(
+                        text = stats.healthDescription,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppColors.Gray600
+                    )
+                }
+
+                Text(
+                    text = stats.healthLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = stats.healthColor
+                )
+            }
+
+            PremiumDashboardProgressBar(
+                title = "Recaudación frente a riesgo",
+                progress = stats.healthProgress,
+                color = stats.healthColor,
+                leftText = "Recaudado: ${stats.collectionRateText}",
+                rightText = "Mora: ${formatMoney(stats.overdueAmount, currencySymbol)}"
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            ) {
+                PremiumDashboardStatPill(
+                    title = "Clientes en mora",
+                    value = stats.clientsInMora.toString(),
+                    subtitle = "${stats.overdueInstallments} cuotas vencidas",
+                    modifier = Modifier.weight(1f),
+                    danger = stats.clientsInMora > 0
+                )
+
+                PremiumDashboardStatPill(
+                    title = "Próximos a cerrar",
+                    value = stats.closingSoonLoans.toString(),
+                    subtitle = "Préstamos sobre 90%",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PremiumCollectionAlertsPanel(
+    currencySymbol: String
+) {
+    val stats = buildPremiumDashboardStats(currencySymbol)
+
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            Text(
+                text = "Alertas premium",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Gray900
+            )
+
+            Text(
+                text = "Prioridades reales de cobranza y actividad reciente.",
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.Gray600
+            )
+
+            PremiumAlertLine(
+                title = if (stats.todayDueAmount > 0.0) "Cobros de hoy" else "Sin cobros fuertes hoy",
+                description = if (stats.todayDueAmount > 0.0) {
+                    "${stats.dueTodayInstallments} cuotas por ${formatMoney(stats.todayDueAmount, currencySymbol)}."
+                } else {
+                    "No hay cuotas pendientes para cobrar hoy."
+                },
+                danger = false
+            )
+
+            PremiumAlertLine(
+                title = if (stats.overdueAmount > 0.0) "Mora activa" else "Cartera sin mora crítica",
+                description = if (stats.overdueAmount > 0.0) {
+                    "${stats.overdueInstallments} cuotas vencidas por ${formatMoney(stats.overdueAmount, currencySymbol)}."
+                } else {
+                    "No hay cuotas vencidas activas en este momento."
+                },
+                danger = stats.overdueAmount > 0.0
+            )
+
+            PremiumAlertLine(
+                title = if (stats.closingSoonLoans > 0) "Préstamos próximos a cerrar" else "Sin cierres próximos",
+                description = if (stats.closingSoonLoans > 0) {
+                    "${stats.closingSoonLoans} préstamos están sobre el 90% de recaudación."
+                } else {
+                    "Aún no hay préstamos cercanos a completarse."
+                },
+                danger = false
+            )
+
+            if (stats.recentPaymentLines.isNotEmpty()) {
+                stats.recentPaymentLines.forEach { line ->
+                    PremiumAlertLine(
+                        title = "Pago reciente",
+                        description = line,
+                        danger = false
+                    )
+                }
+            } else {
+                PremiumAlertLine(
+                    title = "Sin pagos recientes",
+                    description = "No hay pagos activos registrados recientemente.",
+                    danger = false
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PremiumDashboardStatPill(
+    title: String,
+    value: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    danger: Boolean = false
+) {
+    Surface(
+        modifier = modifier,
+        color = AppColors.Background,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (danger) AppColors.Error.copy(alpha = 0.45f) else AppColors.Divider
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (danger) AppColors.Error else AppColors.Gray900
+            )
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray600
+            )
+        }
+    }
+}
+
+@Composable
+private fun PremiumDashboardProgressBar(
+    title: String,
+    progress: Float,
+    color: Color,
+    leftText: String,
+    rightText: String
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Gray900
+            )
+
+            Text(
+                text = "${(progress * 100).toInt()}%",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(AppColors.Divider)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progress)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(color)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = leftText,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = rightText,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray600
+            )
+        }
+    }
+}
+
+@Composable
+private fun PremiumAlertLine(
+    title: String,
+    description: String,
+    danger: Boolean
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = if (danger) AppColors.Error.copy(alpha = 0.08f) else AppColors.Background,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (danger) AppColors.Error.copy(alpha = 0.35f) else AppColors.Divider
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = if (danger) AppColors.Error else AppColors.Gray900
+            )
+
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.Gray600
+            )
+        }
+    }
+}
+
+private data class PremiumDashboardStats(
+    val collectedToday: Double,
+    val collectedWeek: Double,
+    val collectedMonth: Double,
+    val dailyAverage: Double,
+    val todayDueAmount: Double,
+    val overdueAmount: Double,
+    val dueTodayInstallments: Int,
+    val overdueInstallments: Int,
+    val clientsInMora: Int,
+    val activeClients: Int,
+    val activeLoans: Int,
+    val closingSoonLoans: Int,
+    val collectionRateText: String,
+    val healthLabel: String,
+    val healthDescription: String,
+    val healthProgress: Float,
+    val healthColor: Color,
+    val recentPaymentLines: List<String>
+)
+
+private fun buildPremiumDashboardStats(
+    currencySymbol: String
+): PremiumDashboardStats {
+    val todayStart = startOfTodayMillis()
+    val todayEnd = endOfTodayMillis()
+    val weekStart = startOfCurrentWeekMillis()
+    val monthStart = startOfCurrentMonthMillis()
+    val sevenDaysAgo = todayStart - (6L * 24L * 60L * 60L * 1000L)
+
+    val activeClients = LocalClientRepository
+        .getClients()
+        .filter { client -> FinancialOperationRules.canShowClientInOperationalLists(client) }
+
+    val activeLoans = LocalLoanRepository
+        .getAllLoans()
+        .filter { loan -> loan.status.name == "ACTIVE" }
+
+    val activePayments = LocalPaymentRepository
+        .getAllPayments()
+        .filter { payment -> FinancialOperationRules.shouldCountPaymentFinancially(payment) }
+
+    val activeLoanIds = activeLoans.map { loan -> loan.id }.toSet()
+
+    val operationalPayments = activePayments
+        .filter { payment -> payment.loanId in activeLoanIds }
+
+    val collectedToday = operationalPayments
+        .filter { payment -> payment.createdAtMillis in todayStart..todayEnd }
+        .sumOf { payment -> payment.amount }
+
+    val collectedWeek = operationalPayments
+        .filter { payment -> payment.createdAtMillis >= weekStart }
+        .sumOf { payment -> payment.amount }
+
+    val collectedMonth = operationalPayments
+        .filter { payment -> payment.createdAtMillis >= monthStart }
+        .sumOf { payment -> payment.amount }
+
+    val lastSevenCollected = operationalPayments
+        .filter { payment -> payment.createdAtMillis >= sevenDaysAgo }
+        .sumOf { payment -> payment.amount }
+
+    val dailyAverage = lastSevenCollected / 7.0
+
+    val installments = activeLoans.flatMap { loan ->
+        LocalInstallmentRepository.getInstallmentsByLoan(loan.id)
+    }
+
+    val dueToday = installments.filter { installment ->
+        installment.dueDateMillis in todayStart..todayEnd &&
+            installment.status != InstallmentStatus.PAID &&
+            installment.status != InstallmentStatus.CANCELLED
+    }
+
+    val overdue = installments.filter { installment ->
+        installment.status == InstallmentStatus.OVERDUE
+    }
+
+    val todayDueAmount = dueToday.sumOf { installment -> installment.pendingAmount }
+    val overdueAmount = overdue.sumOf { installment -> installment.pendingAmount }
+
+    val overdueLoanIds = overdue.map { installment -> installment.loanId }.toSet()
+
+    val clientsInMora = activeLoans
+        .filter { loan -> loan.id in overdueLoanIds }
+        .map { loan -> loan.clientId }
+        .distinct()
+        .size
+
+    val portfolioTarget = activeLoans.sumOf { loan -> loan.totalExpectedAmount }
+    val collected = activeLoans.sumOf { loan ->
+        LocalPaymentRepository.getTotalPaidByLoan(loan.id)
+    }
+
+    val collectionRate = if (portfolioTarget > 0.0) {
+        (collected / portfolioTarget).coerceIn(0.0, 1.0)
+    } else {
+        0.0
+    }
+
+    val overdueRatio = if (portfolioTarget > 0.0) {
+        (overdueAmount / portfolioTarget).coerceIn(0.0, 1.0)
+    } else {
+        0.0
+    }
+
+    val healthProgress = (collectionRate - overdueRatio).coerceIn(0.0, 1.0).toFloat()
+
+    val healthLabel = when {
+        overdueAmount <= 0.0 && collectionRate >= 0.60 -> "Saludable"
+        overdueAmount <= 0.0 -> "En observación"
+        overdueRatio < 0.10 -> "Riesgo moderado"
+        else -> "Riesgo alto"
+    }
+
+    val healthDescription = when (healthLabel) {
+        "Saludable" -> "La cartera mantiene buena recaudación y no muestra mora activa."
+        "En observación" -> "No hay mora fuerte, pero todavía falta aumentar la recaudación."
+        "Riesgo moderado" -> "Hay mora controlada. Conviene priorizar cobros vencidos."
+        else -> "La mora pesa demasiado sobre la cartera. Requiere atención inmediata."
+    }
+
+    val healthColor = when (healthLabel) {
+        "Saludable" -> AppColors.Success
+        "En observación" -> AppColors.Warning
+        "Riesgo moderado" -> AppColors.Warning
+        else -> AppColors.Error
+    }
+
+    val closingSoonLoans = activeLoans.count { loan ->
+        val paid = LocalPaymentRepository.getTotalPaidByLoan(loan.id)
+        val progress = if (loan.totalExpectedAmount > 0.0) {
+            paid / loan.totalExpectedAmount
+        } else {
+            0.0
+        }
+
+        progress >= 0.90 && paid < loan.totalExpectedAmount
+    }
+
+    val recentPaymentLines = operationalPayments
+        .sortedByDescending { payment -> payment.createdAtMillis }
+        .take(3)
+        .map { payment ->
+            val loan = LocalLoanRepository.getLoanById(payment.loanId)
+            val clientName = loan?.let { currentLoan ->
+                LocalClientRepository.getClientById(currentLoan.clientId)?.fullName
+            }.orEmpty().ifBlank { "Cliente no disponible" }
+
+            "$clientName · ${formatMoney(payment.amount, currencySymbol)} · ${formatDashboardDate(payment.createdAtMillis)}"
+        }
+
+    return PremiumDashboardStats(
+        collectedToday = collectedToday,
+        collectedWeek = collectedWeek,
+        collectedMonth = collectedMonth,
+        dailyAverage = dailyAverage,
+        todayDueAmount = todayDueAmount,
+        overdueAmount = overdueAmount,
+        dueTodayInstallments = dueToday.size,
+        overdueInstallments = overdue.size,
+        clientsInMora = clientsInMora,
+        activeClients = activeClients.size,
+        activeLoans = activeLoans.size,
+        closingSoonLoans = closingSoonLoans,
+        collectionRateText = formatPercent(collectionRate),
+        healthLabel = healthLabel,
+        healthDescription = healthDescription,
+        healthProgress = healthProgress,
+        healthColor = healthColor,
+        recentPaymentLines = recentPaymentLines
+    )
+}
+
 @Composable
 private fun CollectionProgressCard(
     state: DashboardState
@@ -639,81 +1177,6 @@ private fun SevenDayCollectionCard(
                     days = state.lastSevenDays,
                     currencySymbol = state.currencySymbol
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PortfolioHealthCard(
-    state: DashboardState
-) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            SectionTitle(
-                title = "Salud de cartera",
-                subtitle = "Indicadores rápidos del negocio."
-            )
-
-            IndicatorRow("Clientes registrados", state.totalClients.toString())
-            IndicatorRow("Clientes con deuda", state.clientsWithDebt.toString())
-            IndicatorRow("Préstamos activos", state.activeLoans.toString())
-            IndicatorRow("Préstamos completados", state.completedLoans.toString())
-            IndicatorRow("Cuotas pendientes/parciales", state.pendingInstallments.toString())
-            IndicatorRow("Cuotas pagadas", state.paidInstallments.toString())
-        }
-    }
-}
-
-@Composable
-private fun DashboardAlertsCard(
-    state: DashboardState
-) {
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            SectionTitle(
-                title = "Alertas",
-                subtitle = "Prioridades para revisar hoy."
-            )
-
-            when {
-                state.isEmpty -> {
-                    AlertText(
-                        text = "No hay datos cargados. Puedes comenzar registrando clientes y préstamos, o restaurar una copia desde Más > Backup.",
-                        color = AppColors.Warning
-                    )
-                }
-
-                state.overdueInstallments > 0 -> {
-                    AlertText(
-                        text = "Hay ${state.overdueInstallments} cuotas vencidas por ${state.overdueAmountFormatted}.",
-                        color = AppColors.Error
-                    )
-                }
-
-                state.todayDueInstallments > 0 -> {
-                    AlertText(
-                        text = "Hay ${state.todayDueInstallments} cuotas para cobrar hoy por ${state.todayDueFormatted}.",
-                        color = AppColors.Warning
-                    )
-                }
-
-                else -> {
-                    AlertText(
-                        text = "No hay cuotas vencidas ni cobros pendientes para hoy.",
-                        color = AppColors.Success
-                    )
-                }
             }
         }
     }
@@ -955,19 +1418,6 @@ private fun IndicatorRow(
             color = AppColors.Gray900
         )
     }
-}
-
-@Composable
-private fun AlertText(
-    text: String,
-    color: Color
-) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = color
-    )
 }
 
 private data class DashboardState(
@@ -1288,6 +1738,7 @@ private fun formatShortMoney(
 private fun formatPercent(value: Double): String {
     return DecimalFormat("#,##0%").format(value.coerceIn(0.0, 1.0))
 }
+
 
 
 
