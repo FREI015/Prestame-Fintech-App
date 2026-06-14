@@ -1,4 +1,4 @@
-﻿package com.controlprestamos.features.auth.presentation
+package com.controlprestamos.features.auth.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -436,7 +436,7 @@ private fun ProfesionalAccessCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 AccessMethodButton(
-                    icon = "âœ‰",
+                    icon = "Ã¢Å“â€°",
                     title = "Correo",
                     subtitle = "Clave principal",
                     selected = selectedMode == LoginAccessMode.PASSWORD,
@@ -447,7 +447,7 @@ private fun ProfesionalAccessCard(
 
                 if (hasPin) {
                     AccessMethodButton(
-                        icon = "ðŸ”",
+                        icon = "Ã°Å¸â€Â",
                         title = "PIN",
                         subtitle = "RÃ¡pido",
                         selected = selectedMode == LoginAccessMode.PIN,
@@ -459,7 +459,7 @@ private fun ProfesionalAccessCard(
 
                 if (biometricEnabled) {
                     AccessMethodButton(
-                        icon = "ðŸ‘†",
+                        icon = "Ã°Å¸â€˜â€ ",
                         title = "Huella",
                         subtitle = "BiometrÃ­a",
                         selected = false,

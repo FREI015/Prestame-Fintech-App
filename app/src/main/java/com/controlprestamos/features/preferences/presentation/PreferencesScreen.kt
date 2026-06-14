@@ -1,4 +1,4 @@
-﻿package com.controlprestamos.features.preferences.presentation
+package com.controlprestamos.features.preferences.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -102,7 +102,7 @@ fun PreferencesScreen(
                 )
 
                 Text(
-                    text = "Estos datos se usarÃ¡n en reportes, recibos, WhatsApp y pantallas principales.",
+                    text = "Estos datos se usarán en reportes, recibos, WhatsApp y pantallas principales.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppColors.Gray600
                 )
@@ -126,7 +126,7 @@ fun PreferencesScreen(
                                 currencySymbol = it.take(4)
                                 savedMessage = ""
                             },
-                            label = "SÃ­mbolo de moneda"
+                            label = "Símbolo de moneda"
                         )
 
                         Text(
@@ -211,7 +211,7 @@ fun PreferencesScreen(
                         )
 
                         Text(
-                            text = "Ajusta la densidad visual segÃºn cÃ³mo quieras ver la informaciÃ³n.",
+                            text = "Ajusta la densidad visual según cómo quieras ver la información.",
                             style = MaterialTheme.typography.bodySmall,
                             color = AppColors.Gray600
                         )
