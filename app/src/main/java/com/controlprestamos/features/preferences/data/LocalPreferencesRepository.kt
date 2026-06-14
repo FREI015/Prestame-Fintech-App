@@ -15,8 +15,8 @@ enum class AppVisualTheme(
         description = "Enfocado en crecimiento, cobro y estabilidad."
     ),
     PREMIUM_GOLD(
-        label = "Dorado premium",
-        description = "Más elegante, comercial y de alto valor."
+        label = "Dorado elegante",
+        description = "Elegante, comercial y de alto valor."
     )
 }
 
@@ -119,3 +119,4 @@ object LocalPreferencesRepository {
         )
     }
 }
+

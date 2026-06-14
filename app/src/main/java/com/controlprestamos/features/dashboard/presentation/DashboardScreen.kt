@@ -37,9 +37,6 @@ import com.controlprestamos.features.installments.domain.model.InstallmentStatus
 import com.controlprestamos.features.loans.data.LocalLoanRepository
 import com.controlprestamos.features.payments.data.LocalPaymentRepository
 import com.controlprestamos.features.payments.domain.model.Payment
-import com.controlprestamos.features.preferences.data.AppPreferences
-import com.controlprestamos.features.preferences.data.AppVisualScale
-import com.controlprestamos.features.preferences.data.AppVisualTheme
 import com.controlprestamos.features.preferences.data.LocalPreferencesRepository
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
@@ -98,8 +95,6 @@ fun DashboardScreen(
                     .padding(AppSpacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
-                PremiumVisualModeHeader(preferences = preferences)
-
                 PremiumPortfolioTotalsCard(currencySymbol = preferences.currencySymbol)
 
                 PremiumOperationalStatsCard(currencySymbol = preferences.currencySymbol)
@@ -212,67 +207,6 @@ fun DashboardScreen(
 
 
 @Composable
-private fun PremiumVisualModeHeader(
-    preferences: AppPreferences
-) {
-    val theme = runCatching {
-        AppVisualTheme.valueOf(preferences.visualTheme)
-    }.getOrDefault(AppVisualTheme.EXECUTIVE_BLUE)
-
-    val scale = runCatching {
-        AppVisualScale.valueOf(preferences.visualScale)
-    }.getOrDefault(AppVisualScale.NORMAL)
-
-    val accentColor = when (theme) {
-        AppVisualTheme.EXECUTIVE_BLUE -> AppColors.AccentTeal
-        AppVisualTheme.FINANCIAL_GREEN -> AppColors.Success
-        AppVisualTheme.PREMIUM_GOLD -> AppColors.Warning
-    }
-
-    val scaleDescription = when (scale) {
-        AppVisualScale.COMPACT -> "Vista compacta: más datos en menos espacio."
-        AppVisualScale.NORMAL -> "Vista normal: equilibrio entre lectura y densidad."
-        AppVisualScale.COMFORTABLE -> "Vista cómoda: más aire visual entre tarjetas."
-        AppVisualScale.LARGE -> "Vista grande: lectura amplia y cómoda."
-    }
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = accentColor.copy(alpha = 0.10f),
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(
-            width = 1.dp,
-            color = accentColor.copy(alpha = 0.45f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "Inicio premium activo",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
-            )
-
-            Text(
-                text = "${theme.label} · ${scale.label}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = accentColor
-            )
-
-            Text(
-                text = scaleDescription,
-                style = MaterialTheme.typography.bodySmall,
-                color = AppColors.Gray600
-            )
-        }
-    }
-}
-
-@Composable
 private fun PremiumPortfolioTotalsCard(
     currencySymbol: String
 ) {
@@ -308,7 +242,7 @@ private fun PremiumPortfolioTotalsCard(
             )
 
             Text(
-                text = "Resumen financiero real calculado desde préstamos activos y pagos vigentes.",
+                text = "Resumen de préstamos activos y pagos vigentes.",
                 style = MaterialTheme.typography.bodySmall,
                 color = AppColors.Gray600
             )
@@ -660,7 +594,7 @@ private fun PremiumOperationalStatsCard(
             )
 
             Text(
-                text = "Cobros reales por día, semana y mes. Ideal para saber cómo va la operación.",
+                text = "Cobros por día, semana y mes para medir la operación.",
                 style = MaterialTheme.typography.bodySmall,
                 color = AppColors.Gray600
             )
@@ -795,14 +729,14 @@ private fun PremiumCollectionAlertsPanel(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
             Text(
-                text = "Alertas premium",
+                text = "Alertas de cartera",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
             )
 
             Text(
-                text = "Prioridades reales de cobranza y actividad reciente.",
+                text = "Prioridades de cobranza y actividad reciente.",
                 style = MaterialTheme.typography.bodySmall,
                 color = AppColors.Gray600
             )
@@ -1805,6 +1739,7 @@ private fun formatShortMoney(
 private fun formatPercent(value: Double): String {
     return DecimalFormat("#,##0%").format(value.coerceIn(0.0, 1.0))
 }
+
 
 
 

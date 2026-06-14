@@ -172,14 +172,14 @@ fun PreferencesScreen(
                         verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
                     ) {
                         Text(
-                            text = "Tema visual premium",
+                            text = "Estilo visual",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = AppColors.Gray900
                         )
 
                         Text(
-                            text = "Elige la personalidad visual de la app. Esta selección se reflejará primero en el inicio y luego en el resto de módulos.",
+                            text = "Elige la apariencia que mejor represente tu forma de trabajar.",
                             style = MaterialTheme.typography.bodySmall,
                             color = AppColors.Gray600
                         )
@@ -345,4 +345,5 @@ private fun scaleLabel(value: String): String {
         AppVisualScale.valueOf(value).label
     }.getOrDefault(AppVisualScale.NORMAL.label)
 }
+
 
