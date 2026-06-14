@@ -1,0 +1,10 @@
+﻿<resources>
+    <style name="Theme.ControlPrestamos" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@color/cp_background</item>
+        <item name="android:navigationBarColor">@color/cp_background</item>
+        <item name="android:fontFamily">sans</item>
+    </style>
+</resources>

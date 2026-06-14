@@ -1,0 +1,71 @@
+﻿CONTROL PRESTAMOS - REPORTE LIMPIEZA GIT
+Fecha: 20260613-205244
+
+Objetivo:
+- Dejar el proyecto limpio para GitHub.
+
+Excluido de Git:
+- _migration_reference/
+- _migration_backup/
+- _stable_release/
+- _local_archives/
+- docs/migration/
+- *.hprof
+- Auditoria_Registro.txt
+
+Archivo local de respaldo:
+- _local_archives\git_cleanup_20260613-205244
+
+Estado Git final:
+ D Auditoria_Registro.txt
+ D _migration_reference/in_memory_repositories_20260611-225058/InMemoryClientRepository.kt
+ D _migration_reference/in_memory_repositories_20260611-225058/InMemoryLoanRepository.kt
+ D _migration_reference/in_memory_repositories_20260611-225058/InMemoryPaymentRepository.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/ButtonPrimary/ButtonPrimary.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/ButtonPrimary/ButtonPrimary.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/CardCliente/CardCliente.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/CardCliente/CardCliente.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/CardPrestamo/CardPrestamo.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/CardPrestamo/CardPrestamo.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/ChipEstado/ChipEstado.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/ChipEstado/ChipEstado.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/Footer/Footer.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/Footer/Footer.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/Header/Header.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/Header/Header.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/InputField/InputField.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/components/InputField/InputField.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/auth/register/data/FirebaseRegisterRepository.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/auth/register/data/RegisterRepository.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/auth/register/domain/RegisterEvent.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/auth/register/domain/RegisterResult.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/auth/register/domain/RegisterValidator.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/auth/register/domain/RegisterViewModel.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/auth/register/presentation/RegisterScreen.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/auth/register/presentation/RegisterState.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/auth/register/presentation/RegisterView.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/clients/data/ClientRepository.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/clients/data/LocalClientRepository.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/clients/domain/ClientEvent.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/clients/domain/ClientValidator.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/clients/domain/ClientViewModel.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/clients/presentation/ClientScreen.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/clients/presentation/ClientState.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/features/clients/presentation/ClientView.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Clientes/Clientes.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Clientes/Clientes.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Configuracion/Configuracion.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Configuracion/Configuracion.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Dashboard/Dashboard.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Dashboard/Dashboard.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/DetallePrestamo/DetallePrestamo.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/DetallePrestamo/DetallePrestamo.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Login/Login.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Login/Login.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Pagos/Pagos.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Pagos/Pagos.xml
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Perfil/Perfil.kt
+ D _migration_reference/professional_initial_sources_20260611-220635/controlprestamos/screens/Perfil/Perfil.xml
+ D java_pid16860.hprof
+ D java_pid19536.hprof
+ D java_pid26052.hprof

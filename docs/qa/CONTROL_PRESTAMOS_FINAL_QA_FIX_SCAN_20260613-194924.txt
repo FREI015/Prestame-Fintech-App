@@ -1,0 +1,25 @@
+﻿CONTROL PRESTAMOS - FINAL QA FIX SCAN
+Fecha: 20260613-194924
+
+=====================================================
+PaymentsScreen.kt
+=====================================================
+L12: import com.controlprestamos.core.rules.FinancialOperationRules
+L661: val operationalLoanIds = LocalLoanRepository
+L667: FinancialOperationRules.shouldCountLoanInOperationalReports(
+L682: val payments = LocalPaymentRepository.getAllPayments()
+L686: payment.loanId in operationalLoanIds &&
+L688: FinancialOperationRules.shouldCountPaymentFinancially(payment)
+
+=====================================================
+LocalBackupRepository.kt
+=====================================================
+L88: private const val schemaVersion = 2
+L151: fun inspectBackup(backupJson: String): BackupValidationReport {
+L291: fun restoreBackup(
+L295: val validationReport = inspectBackup(backupJson)
+L366: LocalClientRepository.reloadFromStorage(context)
+L367: LocalClientExtraRepository.reloadFromStorage(context)
+L368: LocalLoanRepository.reloadFromStorage(context)
+L369: LocalPaymentRepository.reloadFromStorage(context)
+L370: LocalInstallmentRepository.reloadFromStorage(context)

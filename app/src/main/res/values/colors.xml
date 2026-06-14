@@ -1,0 +1,6 @@
+﻿<resources>
+    <color name="cp_primary">#185ADB</color>
+    <color name="cp_primary_dark">#0B3D91</color>
+    <color name="cp_background">#F6F8FC</color>
+    <color name="cp_surface">#FFFFFF</color>
+</resources>

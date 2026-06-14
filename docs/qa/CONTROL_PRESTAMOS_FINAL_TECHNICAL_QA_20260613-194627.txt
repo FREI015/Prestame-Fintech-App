@@ -1,0 +1,79 @@
+﻿CONTROL PRESTAMOS - QA TECNICO FINAL
+Fecha: 20260613-194627
+
+OK: 54
+WARN: 0
+FAIL: 2
+TOTAL: 56
+
+=====================================================
+FALLOS Y ADVERTENCIAS
+=====================================================
+FAIL - Pagos - Centro pagos filtra operación
+Archivo: app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt
+Patrón: operationalLoanIds
+
+FAIL - Backup - Schema version
+Archivo: app\src\main\java\com\controlprestamos\features\backup\data\LocalBackupRepository.kt
+Patrón: schemaVersion
+
+
+=====================================================
+TODOS LOS CHECKS
+=====================================================
+OK | Reglas centrales | Existe FinancialOperationRules | app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt | object FinancialOperationRules | L10
+OK | Reglas centrales | Regla crear préstamo por cliente | app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt | canCreateLoanForClient | L12
+OK | Reglas centrales | Regla registrar pago por préstamo | app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt | canRegisterPaymentForLoan | L16
+OK | Reglas centrales | Regla reporte operativo | app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt | shouldCountLoanInOperationalReports | L71
+OK | Reglas centrales | Regla pago financiero | app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt | shouldCountPaymentFinancially | L81
+OK | Reglas centrales | Regla préstamo cerrado | app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt | isClosedLoan | L85
+OK | Reglas centrales | Etiqueta cliente | app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt | getClientStatusLabel | L90
+OK | Reglas centrales | Etiqueta préstamo | app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt | getLoanStatusLabel | L98
+OK | Reglas centrales | Etiqueta pago | app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt | getPaymentStatusLabel | L107
+OK | Clientes | Anti duplicado clientes | app\src\main\java\com\controlprestamos\features\clients\data\LocalClientRepository.kt | findDuplicateClient | L57, L89, L132
+OK | Clientes | Archivo seguro cliente | app\src\main\java\com\controlprestamos\features\clients\data\LocalClientRepository.kt | archiveClientSafely | L172
+OK | Clientes | Reactivar cliente | app\src\main\java\com\controlprestamos\features\clients\data\LocalClientRepository.kt | reactivateClient | L185
+OK | Clientes | Filtro archivados en lista | app\src\main\java\com\controlprestamos\features\clients\presentation\ClientsScreen.kt | ClientListFilter | L46, L67, L71, L72, L77
+OK | Clientes | Detalle usa reglas centrales | app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt | FinancialOperationRules | L34, L178, L191, L217
+OK | Clientes | PDF de cobranza en detalle | app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt | PDF de cobranza | L199, L212
+OK | Préstamos | Actualizar estado por balance | app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt | updateLoanStatusByBalance | L179
+OK | Préstamos | Protección edición financiera | app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt | hasPaymentHistory | L108, L112
+OK | Préstamos | Crear préstamo bloquea archivados | app\src\main\java\com\controlprestamos\features\loans\presentation\CreateLoanScreen.kt | canCreateLoanForClient | L119
+OK | Préstamos | Editar préstamo usa reglas | app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt | FinancialOperationRules | L38, L152
+OK | Préstamos | Cartera por cliente usa reglas | app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt | FinancialOperationRules | L32, L56, L273
+OK | Préstamos | Cartera bloquea préstamo cerrado | app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt | isClosedLoan | L273
+OK | Pagos | Historial total de pagos | app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt | getAllPaymentHistory | L45
+OK | Pagos | Historial por préstamo | app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt | getPaymentHistoryByLoan | L55
+OK | Pagos | Anular pago | app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt | cancelPayment | L117
+OK | Pagos | Crear pago usa reglas | app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt | FinancialOperationRules | L35, L152, L155, L168, L171
+OK | Pagos | Crear pago bloquea cerrados | app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt | isClosedLoan | L168, L183
+OK | Pagos | Historial por préstamo usa reglas | app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt | FinancialOperationRules | L40, L94, L95, L463, L626
+FAIL | Pagos | Centro pagos filtra operación | app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt | operationalLoanIds | 
+OK | Cuotas | Reconstrucción cuotas por préstamo | app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt | rebuildInstallmentsForLoan | L325
+OK | Cuotas | Aplicar pago a cuotas | app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt | applyPaymentToInstallments | L125, L187, L194, L364
+OK | Cuotas | Estados vencidos | app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt | refreshOverdueStatuses | L31, L38, L43, L52, L60
+OK | Dashboard y reportes | Dashboard usa reglas | app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt | FinancialOperationRules | L32, L738, L746, L758
+OK | Dashboard y reportes | Dashboard reporte operativo | app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt | shouldCountLoanInOperationalReports | L746
+OK | Dashboard y reportes | Reports usa reglas | app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt | FinancialOperationRules | L34, L689, L697, L709
+OK | Dashboard y reportes | Reports pagos activos | app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt | shouldCountPaymentFinancially | L709
+OK | Backup | Inspect backup | app\src\main\java\com\controlprestamos\features\backup\data\LocalBackupRepository.kt | inspectBackup | L149, L293
+OK | Backup | Restore backup | app\src\main\java\com\controlprestamos\features\backup\data\LocalBackupRepository.kt | restoreBackup | L289
+FAIL | Backup | Schema version | app\src\main\java\com\controlprestamos\features\backup\data\LocalBackupRepository.kt | schemaVersion | 
+OK | Backup | Recargar repositorios | app\src\main\java\com\controlprestamos\features\backup\data\LocalBackupRepository.kt | reloadFromStorage | L364, L365, L366, L367, L368
+OK | Backup | Preview restore pantalla | app\src\main\java\com\controlprestamos\features\backup\presentation\BackupScreen.kt | inspectBackup | L117
+OK | Auditoría | Pantalla auditoría existe | app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt | FinancialAuditScreen | L39
+OK | Auditoría | Detecta pagos huérfanos | app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt | orphanPayments | L52, L58, L59, L121, L122
+OK | Auditoría | Usa reglas financieras | app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt | FinancialOperationRules | L30, L512, L513
+OK | PDF cobranza | Generator cobranza existe | app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt | ClientCollectionPdfGenerator | L22
+OK | PDF cobranza | Resumen cartera | app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt | Resumen de cartera | L133
+OK | PDF cobranza | Mensaje WhatsApp | app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt | Mensaje sugerido para WhatsApp | L269
+OK | PDF cobranza | Usa reglas en PDF | app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt | FinancialOperationRules | L10, L385, L549
+OK | PDF recibo | PDF recibo existe | app\src\main\java\com\controlprestamos\features\payments\domain\receipt\PaymentReceiptPdfGenerator.kt | PaymentReceiptPdfGenerator | L13
+OK | PDF recibo | Formatter recibo existe | app\src\main\java\com\controlprestamos\features\payments\domain\receipt\PaymentReceiptFormatter.kt | PaymentReceiptFormatter | L12
+OK | Preferencias | Nombre negocio | app\src\main\java\com\controlprestamos\features\preferences\data\LocalPreferencesRepository.kt | businessName | L6, L21, L33
+OK | Preferencias | Símbolo moneda | app\src\main\java\com\controlprestamos\features\preferences\data\LocalPreferencesRepository.kt | currencySymbol | L7, L22, L34
+OK | Preferencias | Formato fecha | app\src\main\java\com\controlprestamos\features\preferences\data\LocalPreferencesRepository.kt | dateFormat | L8, L23, L35
+OK | Navegación | AppNavGraph existe | app\src\main\java\com\controlprestamos\core\navigation\AppNavGraph.kt | AppNavGraph | L41
+OK | Navegación | Ruta auditoría | app\src\main\java\com\controlprestamos\core\navigation\AppRoutes.kt | FinancialAudit | L16
+OK | Navegación | Ruta pago | app\src\main\java\com\controlprestamos\core\navigation\AppRoutes.kt | CreatePayment | L59
+OK | Navegación | Ruta cartera cliente | app\src\main\java\com\controlprestamos\core\navigation\AppRoutes.kt | LoansByClient | L27
