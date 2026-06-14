@@ -14,7 +14,7 @@ enum class AppVisualTheme(
         label = "Verde financiero",
         description = "Enfocado en crecimiento, cobro y estabilidad."
     ),
-    PREMIUM_GOLD(
+    PROFESSIONAL_GOLD(
         label = "Dorado elegante",
         description = "Elegante, comercial y de alto valor."
     )
@@ -26,24 +26,24 @@ enum class AppVisualScale(
 ) {
     COMPACT(
         label = "Compacta",
-        description = "Más información en pantalla."
+        description = "MÃ¡s informaciÃ³n en pantalla."
     ),
     NORMAL(
         label = "Normal",
         description = "Equilibrada para uso diario."
     ),
     COMFORTABLE(
-        label = "Cómoda",
-        description = "Más aire visual entre tarjetas."
+        label = "CÃ³moda",
+        description = "MÃ¡s aire visual entre tarjetas."
     ),
     LARGE(
         label = "Grande",
-        description = "Textos y espacios más amplios."
+        description = "Textos y espacios mÃ¡s amplios."
     )
 }
 
 data class AppPreferences(
-    val businessName: String = "Control Préstamos",
+    val businessName: String = "Control PrÃ©stamos",
     val currencySymbol: String = "$",
     val dateFormat: String = "dd/MM/yyyy",
     val visualTheme: String = AppVisualTheme.EXECUTIVE_BLUE.name,
@@ -63,7 +63,7 @@ object LocalPreferencesRepository {
         val sharedPreferences = context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
 
         return AppPreferences(
-            businessName = sharedPreferences.getString(KEY_BUSINESS_NAME, "Control Préstamos") ?: "Control Préstamos",
+            businessName = sharedPreferences.getString(KEY_BUSINESS_NAME, "Control PrÃ©stamos") ?: "Control PrÃ©stamos",
             currencySymbol = sharedPreferences.getString(KEY_CURRENCY_SYMBOL, "$") ?: "$",
             dateFormat = sharedPreferences.getString(KEY_DATE_FORMAT, "dd/MM/yyyy") ?: "dd/MM/yyyy",
             visualTheme = sharedPreferences.getString(KEY_VISUAL_THEME, AppVisualTheme.EXECUTIVE_BLUE.name)
@@ -111,7 +111,7 @@ object LocalPreferencesRepository {
         }.getOrDefault(AppVisualScale.NORMAL)
 
         return copy(
-            businessName = businessName.trim().ifBlank { "Control Préstamos" },
+            businessName = businessName.trim().ifBlank { "Control PrÃ©stamos" },
             currencySymbol = currencySymbol.trim().ifBlank { "$" }.take(4),
             dateFormat = dateFormat.trim().ifBlank { "dd/MM/yyyy" },
             visualTheme = safeTheme.name,
@@ -119,4 +119,8 @@ object LocalPreferencesRepository {
         )
     }
 }
+
+
+
+
 

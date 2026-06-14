@@ -102,7 +102,7 @@ fun PreferencesScreen(
                 )
 
                 Text(
-                    text = "Estos datos se usarán en reportes, recibos, WhatsApp y pantallas principales.",
+                    text = "Estos datos se usarÃ¡n en reportes, recibos, WhatsApp y pantallas principales.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppColors.Gray600
                 )
@@ -126,7 +126,7 @@ fun PreferencesScreen(
                                 currencySymbol = it.take(4)
                                 savedMessage = ""
                             },
-                            label = "Símbolo de moneda"
+                            label = "SÃ­mbolo de moneda"
                         )
 
                         Text(
@@ -211,7 +211,7 @@ fun PreferencesScreen(
                         )
 
                         Text(
-                            text = "Ajusta la densidad visual según cómo quieras ver la información.",
+                            text = "Ajusta la densidad visual segÃºn cÃ³mo quieras ver la informaciÃ³n.",
                             style = MaterialTheme.typography.bodySmall,
                             color = AppColors.Gray600
                         )
@@ -296,7 +296,7 @@ private fun PreferenceChoiceCard(
 ) {
     val accentColor = when (accentKind) {
         AppVisualTheme.FINANCIAL_GREEN.name -> AppColors.Success
-        AppVisualTheme.PREMIUM_GOLD.name -> AppColors.Warning
+        AppVisualTheme.PROFESSIONAL_GOLD.name -> AppColors.Warning
         else -> AppColors.AccentTeal
     }
 
@@ -345,5 +345,9 @@ private fun scaleLabel(value: String): String {
         AppVisualScale.valueOf(value).label
     }.getOrDefault(AppVisualScale.NORMAL.label)
 }
+
+
+
+
 
 
