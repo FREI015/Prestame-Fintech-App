@@ -2,7 +2,6 @@
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -74,12 +72,12 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             AppTopBar(
-                title = "¡Buenos días!",
+                title = getGreetingByDeviceTime(),
                 subtitle = "Resumen de tu negocio",
                 showMenu = true,
-                showNotifications = true,
+                showNotifications = false,
                 onMenu = onOpenMore,
-                onNotifications = onOpenMore
+                onNotifications = {}
             )
         },
         bottomBar = {
@@ -110,15 +108,11 @@ fun DashboardScreen(
 
                 ReferenceMetricGrid(state = state)
 
+                ReferencePortfolioSummaryCard(state = state)
+
                 ReferenceChartCard(state = state)
 
-                ReferenceUpcomingPaymentsCard(state = state)
-
-                ReferenceQuickActions(
-                    onOpenLoans = onOpenLoans,
-                    onOpenPayments = onOpenPayments,
-                    onOpenClients = onOpenClients
-                )
+                ReferenceActiveClientsCard(state = state)
 
                 Spacer(modifier = Modifier.height(AppSpacing.md))
             }
@@ -141,7 +135,7 @@ private fun ReferenceMetricGrid(
                 icon = "▣",
                 title = "Total prestado",
                 value = state.totalLentText,
-                subtitle = "Total acumulado",
+                subtitle = "Capital activo",
                 accentColor = AppColors.AccentTeal,
                 modifier = Modifier.weight(1f)
             )
@@ -162,7 +156,7 @@ private fun ReferenceMetricGrid(
         ) {
             ReferenceMetricCard(
                 icon = "!",
-                title = "Pagos pendientes",
+                title = "Por cobrar",
                 value = state.pendingAmountText,
                 subtitle = "${state.pendingInstallments} cuotas",
                 accentColor = AppColors.Warning,
@@ -182,6 +176,94 @@ private fun ReferenceMetricGrid(
 }
 
 @Composable
+private fun ReferencePortfolioSummaryCard(
+    state: ReferenceDashboardState
+) {
+    ReferenceCard {
+        Text(
+            text = "Cartera activa",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Spacer(modifier = Modifier.height(AppSpacing.xs))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            ReferenceCompactValue(
+                title = "Ganancia",
+                value = state.earningPercentText,
+                subtitle = "Activa",
+                color = AppColors.Success,
+                modifier = Modifier.weight(1f)
+            )
+
+            ReferenceCompactValue(
+                title = "A recaudar",
+                value = state.totalToCollectText,
+                subtitle = "Total",
+                color = AppColors.AccentTeal,
+                modifier = Modifier.weight(1f)
+            )
+
+            ReferenceCompactValue(
+                title = "Reinvertido",
+                value = state.reinvestedText,
+                subtitle = "Periodo",
+                color = AppColors.PrimaryDark,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReferenceCompactValue(
+    title: String,
+    value: String,
+    subtitle: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = color.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(AppRadius.md),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.22f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray500
+            )
+        }
+    }
+}
+
+@Composable
 private fun ReferenceMetricCard(
     icon: String,
     title: String,
@@ -191,7 +273,7 @@ private fun ReferenceMetricCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.heightIn(min = 116.dp),
+        modifier = modifier.heightIn(min = 112.dp),
         color = AppColors.Surface,
         shape = RoundedCornerShape(AppRadius.card),
         shadowElevation = 2.dp,
@@ -293,7 +375,7 @@ private fun ReferenceBarChart(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp),
+            .height(135.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.Bottom
     ) {
@@ -312,7 +394,7 @@ private fun ReferenceBarChart(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(118.dp),
+                        .height(103.dp),
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     Box(
@@ -337,7 +419,7 @@ private fun ReferenceBarChart(
 }
 
 @Composable
-private fun ReferenceUpcomingPaymentsCard(
+private fun ReferenceActiveClientsCard(
     state: ReferenceDashboardState
 ) {
     ReferenceCard {
@@ -347,34 +429,34 @@ private fun ReferenceUpcomingPaymentsCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Próximos pagos",
+                text = "Clientes con préstamos activos",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
             )
 
             Text(
-                text = if (state.upcomingPayments.isEmpty()) "Sin pendientes" else "Ver todos",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
+                text = state.activeClientRows.size.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
                 color = AppColors.AccentTeal
             )
         }
 
         Spacer(modifier = Modifier.height(AppSpacing.sm))
 
-        if (state.upcomingPayments.isEmpty()) {
+        if (state.activeClientRows.isEmpty()) {
             Text(
-                text = "No hay cuotas pendientes por mostrar.",
+                text = "No hay clientes activos por mostrar.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppColors.Gray600
             )
         } else {
             Column(
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
-                state.upcomingPayments.forEach { item ->
-                    ReferencePaymentRow(item = item)
+                state.activeClientRows.forEach { item ->
+                    ReferenceActiveClientRow(item = item)
                 }
             }
         }
@@ -382,131 +464,61 @@ private fun ReferenceUpcomingPaymentsCard(
 }
 
 @Composable
-private fun ReferencePaymentRow(
-    item: ReferenceUpcomingPayment
+private fun ReferenceActiveClientRow(
+    item: ReferenceActiveClientRow
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
     ) {
-        ClientAvatar(
-            fullName = item.clientName,
-            size = 42.dp
-        )
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = item.clientName,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
+            ClientAvatar(
+                fullName = item.clientName,
+                size = 42.dp
             )
 
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = item.clientName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.Gray900
+                )
+
+                Text(
+                    text = "Prestado ${item.loanedText} · Total ${item.totalToCollectText}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppColors.Gray500
+                )
+            }
+
             Text(
-                text = item.loanLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = AppColors.Gray500
+                text = item.percentText,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.AccentTeal
             )
         }
 
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(AppRadius.pill))
+                .background(AppColors.Gray100)
         ) {
-            Text(
-                text = item.amountText,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
-            )
-
-            Text(
-                text = item.dateText,
-                style = MaterialTheme.typography.labelSmall,
-                color = if (item.isOverdue) AppColors.Error else AppColors.Gray500
-            )
-        }
-    }
-}
-
-@Composable
-private fun ReferenceQuickActions(
-    onOpenLoans: () -> Unit,
-    onOpenPayments: () -> Unit,
-    onOpenClients: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-    ) {
-        ReferenceActionButton(
-            title = "Nuevo préstamo",
-            icon = "+",
-            background = AppColors.AccentTeal,
-            onClick = onOpenLoans,
-            modifier = Modifier.weight(1f)
-        )
-
-        ReferenceActionButton(
-            title = "Registrar pago",
-            icon = "▣",
-            background = AppColors.PrimaryDark,
-            onClick = onOpenPayments,
-            modifier = Modifier.weight(1f)
-        )
-
-        ReferenceActionButton(
-            title = "Clientes",
-            icon = "◉",
-            background = AppColors.SecondaryDark,
-            onClick = onOpenClients,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun ReferenceActionButton(
-    title: String,
-    icon: String,
-    background: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .height(68.dp)
-            .clip(RoundedCornerShape(AppRadius.card))
-            .clickable {
-                onClick()
-            },
-        color = background,
-        shape = RoundedCornerShape(AppRadius.card),
-        shadowElevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(AppSpacing.sm),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = icon,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.White
-            )
-
-            Spacer(modifier = Modifier.height(3.dp))
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.White
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(item.progress)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(AppRadius.pill))
+                    .background(AppColors.AccentTeal)
             )
         }
     }
@@ -536,14 +548,17 @@ private fun ReferenceCard(
 
 private data class ReferenceDashboardState(
     val totalLentText: String,
+    val totalToCollectText: String,
     val collectedTodayText: String,
     val pendingAmountText: String,
     val weekCollectedText: String,
+    val reinvestedText: String,
+    val earningPercentText: String,
     val activeClients: Int,
     val paymentsToday: Int,
     val pendingInstallments: Int,
     val lastSevenDays: List<ReferenceDailyCollection>,
-    val upcomingPayments: List<ReferenceUpcomingPayment>
+    val activeClientRows: List<ReferenceActiveClientRow>
 )
 
 private data class ReferenceDailyCollection(
@@ -551,19 +566,17 @@ private data class ReferenceDailyCollection(
     val amount: Double
 )
 
-private data class ReferenceUpcomingPayment(
+private data class ReferenceActiveClientRow(
     val clientName: String,
-    val loanLabel: String,
-    val amountText: String,
-    val dateText: String,
-    val isOverdue: Boolean
+    val loanedText: String,
+    val totalToCollectText: String,
+    val percentText: String,
+    val progress: Float
 )
 
 private fun buildReferenceDashboardState(
     currencySymbol: String
 ): ReferenceDashboardState {
-    val clients = LocalClientRepository.getClients()
-
     val activeLoans = LocalLoanRepository
         .getAllLoans()
         .filter { loan -> loan.status == LoanStatus.ACTIVE }
@@ -588,18 +601,24 @@ private fun buildReferenceDashboardState(
     }
 
     val totalLent = activeLoans.sumOf { loan -> loan.principalAmount }
-
-    val totalExpected = activeLoans.sumOf { loan -> loan.totalExpectedAmount }
+    val totalToCollect = activeLoans.sumOf { loan -> loan.totalExpectedAmount }
 
     val totalCollected = activeLoans.sumOf { loan ->
         LocalPaymentRepository.getTotalPaidByLoan(loan.id)
     }
 
-    val pendingAmount = max(totalExpected - totalCollected, 0.0)
+    val pendingAmount = max(totalToCollect - totalCollected, 0.0)
+
+    val earningPercent = if (totalLent > 0.0) {
+        ((totalToCollect - totalLent) / totalLent) * 100.0
+    } else {
+        0.0
+    }
 
     val todayStart = startOfTodayMillis()
     val todayEnd = endOfTodayMillis()
     val weekStart = todayStart - (6L * 24L * 60L * 60L * 1000L)
+    val monthStart = startOfCurrentMonthMillis()
 
     val paymentsToday = operationalPayments.filter { payment ->
         payment.createdAtMillis in todayStart..todayEnd
@@ -609,6 +628,13 @@ private fun buildReferenceDashboardState(
         payment.createdAtMillis >= weekStart
     }
 
+    val reinvestedCapital = activeLoans
+        .filter { loan ->
+            val loanDate = loan.createdAtMillis
+            loanDate >= monthStart && loanDate <= System.currentTimeMillis()
+        }
+        .sumOf { loan -> loan.principalAmount }
+
     val activeClients = activeLoans
         .map { loan -> loan.clientId }
         .distinct()
@@ -616,20 +642,20 @@ private fun buildReferenceDashboardState(
 
     return ReferenceDashboardState(
         totalLentText = formatMoney(totalLent, currencySymbol),
+        totalToCollectText = formatMoney(totalToCollect, currencySymbol),
         collectedTodayText = formatMoney(paymentsToday.sumOf { payment -> payment.amount }, currencySymbol),
         pendingAmountText = formatMoney(pendingAmount, currencySymbol),
         weekCollectedText = formatMoney(weekPayments.sumOf { payment -> payment.amount }, currencySymbol),
-        activeClients = activeClients.coerceAtLeast(
-            clients.count { client -> activeLoans.any { loan -> loan.clientId == client.id } }
-        ),
+        reinvestedText = formatMoney(reinvestedCapital, currencySymbol),
+        earningPercentText = formatPercent(earningPercent),
+        activeClients = activeClients,
         paymentsToday = paymentsToday.size,
         pendingInstallments = pendingInstallments.size,
         lastSevenDays = buildReferenceLastSevenDays(
             payments = operationalPayments
         ),
-        upcomingPayments = buildReferenceUpcomingPayments(
+        activeClientRows = buildReferenceActiveClientRows(
             activeLoans = activeLoans,
-            pendingInstallments = pendingInstallments,
             currencySymbol = currencySymbol
         )
     )
@@ -671,33 +697,49 @@ private fun buildReferenceLastSevenDays(
     return result
 }
 
-private fun buildReferenceUpcomingPayments(
+private fun buildReferenceActiveClientRows(
     activeLoans: List<Loan>,
-    pendingInstallments: List<com.controlprestamos.features.installments.domain.model.Installment>,
     currencySymbol: String
-): List<ReferenceUpcomingPayment> {
-    val loanById = activeLoans.associateBy { loan -> loan.id }
+): List<ReferenceActiveClientRow> {
+    return activeLoans
+        .groupBy { loan -> loan.clientId }
+        .map { entry ->
+            val clientId = entry.key
+            val loans = entry.value
+            val client = LocalClientRepository.getClientById(clientId)
 
-    return pendingInstallments
-        .sortedBy { installment -> installment.dueDateMillis }
-        .take(4)
-        .map { installment ->
-            val loan = loanById[installment.loanId]
-            val client = loan?.let { currentLoan ->
-                LocalClientRepository.getClientById(currentLoan.clientId)
+            val loanedAmount = loans.sumOf { loan -> loan.principalAmount }
+            val totalToCollect = loans.sumOf { loan -> loan.totalExpectedAmount }
+            val collected = loans.sumOf { loan ->
+                LocalPaymentRepository.getTotalPaidByLoan(loan.id)
             }
 
-            val isOverdue = installment.status == InstallmentStatus.OVERDUE ||
-                installment.dueDateMillis < startOfTodayMillis()
+            val progress = if (totalToCollect > 0.0) {
+                (collected / totalToCollect).toFloat().coerceIn(0f, 1f)
+            } else {
+                0f
+            }
 
-            ReferenceUpcomingPayment(
+            ReferenceActiveClientRow(
                 clientName = client?.fullName.orEmpty().ifBlank { "Cliente" },
-                loanLabel = loan?.let { currentLoan -> "Préstamo #${currentLoan.id.takeLast(4)}" }.orEmpty().ifBlank { "Préstamo" },
-                amountText = formatMoney(installment.pendingAmount, currencySymbol),
-                dateText = formatDate(installment.dueDateMillis),
-                isOverdue = isOverdue
+                loanedText = formatMoney(loanedAmount, currencySymbol),
+                totalToCollectText = formatMoney(totalToCollect, currencySymbol),
+                percentText = formatPercent(progress.toDouble() * 100.0),
+                progress = progress
             )
         }
+        .sortedByDescending { row -> row.progress }
+        .take(8)
+}
+
+private fun getGreetingByDeviceTime(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+
+    return when (hour) {
+        in 5..11 -> "¡Buenos días!"
+        in 12..18 -> "¡Buenas tardes!"
+        else -> "¡Buenas noches!"
+    }
 }
 
 private fun startOfTodayMillis(): Long {
@@ -706,6 +748,18 @@ private fun startOfTodayMillis(): Long {
 
 private fun endOfTodayMillis(): Long {
     return endOfDayMillis(System.currentTimeMillis())
+}
+
+private fun startOfCurrentMonthMillis(): Long {
+    val calendar = Calendar.getInstance()
+
+    calendar.set(Calendar.DAY_OF_MONTH, 1)
+    calendar.set(Calendar.HOUR_OF_DAY, 0)
+    calendar.set(Calendar.MINUTE, 0)
+    calendar.set(Calendar.SECOND, 0)
+    calendar.set(Calendar.MILLISECOND, 0)
+
+    return calendar.timeInMillis
 }
 
 private fun startOfDayMillis(millis: Long): Long {
@@ -741,7 +795,6 @@ private fun formatMoney(
     return currencySymbol + DecimalFormat("#,##0").format(value)
 }
 
-private fun formatDate(millis: Long): String {
-    return SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(millis))
+private fun formatPercent(value: Double): String {
+    return DecimalFormat("#,##0.#").format(value) + "%"
 }
-
