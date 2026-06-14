@@ -1,15 +1,21 @@
 ﻿package com.controlprestamos.features.loans.presentation
 
-import com.controlprestamos.core.ui.components.AppBottomNavigationBar
-
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -20,29 +26,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.controlprestamos.core.ui.components.AppBottomNavigation
-import com.controlprestamos.core.ui.components.AppCard
-import com.controlprestamos.core.ui.components.AppStatus
+import com.controlprestamos.core.ui.components.AppBottomNavigationBar
+import com.controlprestamos.core.ui.components.AppTextField
 import com.controlprestamos.core.ui.components.AppTopBar
 import com.controlprestamos.core.ui.components.ClientAvatar
-import com.controlprestamos.core.ui.components.EmptyState
-import com.controlprestamos.core.ui.components.PrimaryButton
-import com.controlprestamos.core.ui.components.SecondaryButton
-import com.controlprestamos.core.ui.components.StatusChip
 import com.controlprestamos.core.ui.theme.AppColors
+import com.controlprestamos.core.ui.theme.AppRadius
 import com.controlprestamos.core.ui.theme.AppSpacing
 import com.controlprestamos.features.clients.data.LocalClientRepository
 import com.controlprestamos.features.installments.data.LocalInstallmentRepository
 import com.controlprestamos.features.installments.domain.model.InstallmentStatus
 import com.controlprestamos.features.loans.data.LocalLoanRepository
 import com.controlprestamos.features.loans.domain.model.Loan
-import com.controlprestamos.features.loans.domain.model.RepaymentPlanType
 import com.controlprestamos.features.loans.domain.model.LoanStatus
 import com.controlprestamos.features.payments.data.LocalPaymentRepository
+import com.controlprestamos.features.payments.domain.model.PaymentStatus
 import com.controlprestamos.features.preferences.data.LocalPreferencesRepository
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
@@ -50,52 +55,87 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.max
 
-private enum class LoansTab(
-    val label: String
-) {
-    ALL("Todos"),
-    ACTIVE("Activos"),
-    OVERDUE("Vencidos"),
-    COMPLETED("Completados"),
-    SINGLE_PAYMENT("Pago único"),
-    INSTALLMENTS("Por cuotas")
-}
-
-private var screenCurrencySymbol = "$"
-
 @Composable
 fun LoansScreen(
-    onNavigateBack: () -> Unit,
-    onOpenDashboard: () -> Unit,
-    onOpenClients: () -> Unit,
-    onOpenPayments: () -> Unit,
-    onOpenMore: () -> Unit,
-    onOpenLoanDetail: (String) -> Unit,
-    onCreateLoanFromClients: () -> Unit
+    onNavigateBack: () -> Unit = {},
+    onOpenDashboard: () -> Unit = {},
+    onOpenClients: () -> Unit = {},
+    onOpenLoans: () -> Unit = {},
+    onOpenPayments: () -> Unit = {},
+    onOpenMore: () -> Unit = {},
+    onCreateLoan: () -> Unit = {},
+    onCreateLoanFromClients: () -> Unit = onCreateLoan,
+    onOpenLoanDetail: (String) -> Unit = {},
+    onLoanClick: (String) -> Unit = onOpenLoanDetail,
+    onOpenLoan: (String) -> Unit = onLoanClick
 ) {
-    val context = LocalContext.current
-    val preferences = LocalPreferencesRepository.getPreferences(context)
-    screenCurrencySymbol = preferences.currencySymbol
+    val preferences = LocalPreferencesRepository.getPreferences(
+        context = LocalContext.current
+    )
 
-    var selectedTab by rememberSaveable {
-        mutableStateOf(LoansTab.ALL)
-    }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var selectedFilter by rememberSaveable { mutableStateOf(LoanListFilter.ACTIVE.name) }
 
-    val state = buildLoansScreenState()
-    val visibleLoans = state.loans.filterByTab(selectedTab)
+    val filter = runCatching {
+        LoanListFilter.valueOf(selectedFilter)
+    }.getOrDefault(LoanListFilter.ACTIVE)
+
+    val allLoans = LocalLoanRepository.getAllLoans()
+
+    val rows = allLoans
+        .map { loan ->
+            buildLoanListRow(
+                loan = loan,
+                currencySymbol = preferences.currencySymbol
+            )
+        }
+        .filter { row ->
+            when (filter) {
+                LoanListFilter.ACTIVE -> row.status == LoanListStatus.ACTIVE
+                LoanListFilter.OVERDUE -> row.status == LoanListStatus.OVERDUE
+                LoanListFilter.PAID -> row.status == LoanListStatus.PAID
+                LoanListFilter.CANCELLED -> row.status == LoanListStatus.CANCELLED
+                LoanListFilter.ALL -> true
+            }
+        }
+        .filter { row ->
+            val query = searchQuery.trim()
+
+            query.isBlank() ||
+                row.clientName.contains(query, ignoreCase = true) ||
+                row.label.contains(query, ignoreCase = true) ||
+                row.statusText.contains(query, ignoreCase = true)
+        }
+        .sortedWith(
+            compareBy<LoanListRow> { row ->
+                when (row.status) {
+                    LoanListStatus.OVERDUE -> 0
+                    LoanListStatus.ACTIVE -> 1
+                    LoanListStatus.PAID -> 2
+                    LoanListStatus.CANCELLED -> 3
+                }
+            }.thenByDescending { row -> row.pendingAmount }
+        )
+
+    val summary = buildLoansSummary(
+        loans = allLoans,
+        currencySymbol = preferences.currencySymbol
+    )
 
     Scaffold(
         topBar = {
             AppTopBar(
                 title = "Préstamos",
-                subtitle = "Control general de cartera",
-                showBack = true,
-                showMore = true,
+                subtitle = "Cartera colocada",
+                showBack = false,
+                showMore = false,
+                showMenu = false,
+                showNotifications = false,
                 onBack = onNavigateBack,
                 onMore = onOpenMore
             )
         },
-                bottomBar = {
+        bottomBar = {
             AppBottomNavigationBar(
                 currentRoute = "loans",
                 onOpenDashboard = onOpenDashboard,
@@ -119,248 +159,166 @@ fun LoansScreen(
                     .padding(AppSpacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
-                LoansHeader(
-                    state = state,
-                    onCreateLoanFromClients = onCreateLoanFromClients
+                Spacer(modifier = Modifier.height(AppSpacing.xs))
+
+                LoansSummaryCard(summary = summary)
+
+                LoansSearchAndFilters(
+                    searchQuery = searchQuery,
+                    onSearchChange = { searchQuery = it },
+                    selectedFilter = filter,
+                    onFilterChange = { selectedFilter = it.name },
+                    onCreateLoan = onCreateLoanFromClients
                 )
 
-                LoansTabSelector(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it }
+                LoansListCard(
+                    rows = rows,
+                    filter = filter,
+                    searchQuery = searchQuery,
+                    onCreateLoan = onCreateLoanFromClients,
+                    onClearSearch = { searchQuery = "" },
+                    onOpenLoan = onOpenLoan
                 )
 
-                if (visibleLoans.isEmpty()) {
-                    EmptyState(
-                        title = emptyTitleForTab(selectedTab),
-                        description = emptyDescriptionForTab(selectedTab),
-                        action = {
-                            SecondaryButton(
-                                text = "Crear desde Clientes",
-                                onClick = onCreateLoanFromClients
-                            )
-                        }
-                    )
-                } else {
-                    visibleLoans.forEach { item ->
-                        LoanListCard(
-                            item = item,
-                            onOpenLoanDetail = onOpenLoanDetail
-                        )
-                    }
-                }
+                Spacer(modifier = Modifier.height(AppSpacing.md))
             }
         }
     }
 }
 
 @Composable
-private fun LoansHeader(
-    state: LoansScreenState,
-    onCreateLoanFromClients: () -> Unit
+private fun LoansSummaryCard(
+    summary: LoansSummary
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
-    ) {
+    ReferenceCard {
         Text(
-            text = "Cartera de préstamos",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.SemiBold,
+            text = "Resumen de cartera",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
             color = AppColors.Gray900
         )
 
-        Text(
-            text = "Consulta activos, vencidos, completados y separa pago único de cuotas.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = AppColors.Gray600
-        )
+        Spacer(modifier = Modifier.height(AppSpacing.xs))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
-            LoansMiniStatCard(
-                title = "Total",
-                value = state.totalLoans.toString(),
-                subtitle = "Préstamos",
+            LoansMiniStat(
+                title = "Activos",
+                value = summary.activeLoans.toString(),
+                subtitle = summary.activeCapitalText,
+                color = AppColors.AccentTeal,
                 modifier = Modifier.weight(1f)
             )
 
-            LoansMiniStatCard(
-                title = "Pendiente",
-                value = formatMoney(state.totalPendingAmount),
-                subtitle = "Por cobrar",
-                modifier = Modifier.weight(1f),
-                isWarning = state.totalPendingAmount > 0.0
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            LoansMiniStatCard(
+            LoansMiniStat(
                 title = "Vencidos",
-                value = state.overdueLoans.toString(),
-                subtitle = "Revisar",
-                modifier = Modifier.weight(1f),
-                isWarning = state.overdueLoans > 0
-            )
-
-            LoansMiniStatCard(
-                title = "Completados",
-                value = state.completedLoans.toString(),
-                subtitle = "Finalizados",
+                value = summary.overdueLoans.toString(),
+                subtitle = summary.overdueAmountText,
+                color = AppColors.Error,
                 modifier = Modifier.weight(1f)
             )
         }
 
-        PrimaryButton(
-            text = "Crear préstamo desde cliente",
-            onClick = onCreateLoanFromClients
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            LoansMiniStat(
+                title = "A recaudar",
+                value = summary.expectedText,
+                subtitle = "Total",
+                color = AppColors.PrimaryDark,
+                modifier = Modifier.weight(1f)
+            )
+
+            LoansMiniStat(
+                title = "Pendiente",
+                value = summary.pendingText,
+                subtitle = summary.progressText,
+                color = AppColors.Warning,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
 @Composable
-private fun LoansMiniStatCard(
+private fun LoansMiniStat(
     title: String,
     value: String,
     subtitle: String,
-    modifier: Modifier = Modifier,
-    isWarning: Boolean = false
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
-    AppCard(
-        modifier = modifier,
-        bordered = true
+    Surface(
+        modifier = modifier.heightIn(min = 76.dp),
+        color = color.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(AppRadius.md),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.20f)
+        )
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isWarning) AppColors.Error else AppColors.AccentTeal
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray600
             )
 
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = AppColors.Gray900
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = color
             )
 
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.labelMedium,
-                color = AppColors.Gray600
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray500
             )
         }
     }
 }
 
 @Composable
-private fun LoansTabSelector(
-    selectedTab: LoansTab,
-    onTabSelected: (LoansTab) -> Unit
+private fun LoansSearchAndFilters(
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    selectedFilter: LoanListFilter,
+    onFilterChange: (LoanListFilter) -> Unit,
+    onCreateLoan: () -> Unit
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-    ) {
+    ReferenceCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            LoanTabButton(
-                tab = LoansTab.ALL,
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
+            Column(
                 modifier = Modifier.weight(1f)
-            )
+            ) {
+                AppTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchChange,
+                    label = "Buscar préstamo",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
-            LoanTabButton(
-                tab = LoansTab.ACTIVE,
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
-                modifier = Modifier.weight(1f)
+            CompactAddLoanButton(
+                onClick = onCreateLoan
             )
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            LoanTabButton(
-                tab = LoansTab.OVERDUE,
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
-                modifier = Modifier.weight(1f)
-            )
+        Spacer(modifier = Modifier.height(AppSpacing.xs))
 
-            LoanTabButton(
-                tab = LoansTab.COMPLETED,
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            LoanTabButton(
-                tab = LoansTab.SINGLE_PAYMENT,
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
-                modifier = Modifier.weight(1f)
-            )
-
-            LoanTabButton(
-                tab = LoansTab.INSTALLMENTS,
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun LoanTabButton(
-    tab: LoansTab,
-    selectedTab: LoansTab,
-    onTabSelected: (LoansTab) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    if (selectedTab == tab) {
-        PrimaryButton(
-            text = tab.label,
-            onClick = { onTabSelected(tab) },
-            modifier = modifier
-        )
-    } else {
-        SecondaryButton(
-            text = tab.label,
-            onClick = { onTabSelected(tab) },
-            modifier = modifier
-        )
-    }
-}
-
-@Composable
-private fun LoanListCard(
-    item: LoanUiItem,
-    onOpenLoanDetail: (String) -> Unit
-) {
-    AppCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                onOpenLoanDetail(item.loanId)
-            },
-        bordered = true
-    ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
@@ -368,219 +326,584 @@ private fun LoanListCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
             ) {
-                ClientAvatar(fullName = item.clientName)
+                LoanFilterChip(
+                    text = "Activos",
+                    selected = selectedFilter == LoanListFilter.ACTIVE,
+                    onClick = { onFilterChange(LoanListFilter.ACTIVE) },
+                    modifier = Modifier.weight(1f)
+                )
 
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    Text(
-                        text = item.clientName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AppColors.Gray900
-                    )
+                LoanFilterChip(
+                    text = "Vencidos",
+                    selected = selectedFilter == LoanListFilter.OVERDUE,
+                    onClick = { onFilterChange(LoanListFilter.OVERDUE) },
+                    modifier = Modifier.weight(1f)
+                )
 
-                    Text(
-                        text = "${item.planLabel} · Creado ${item.createdDate}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AppColors.Gray600
-                    )
-
-                    Text(
-                        text = "Pagado: ${formatMoney(item.totalPaid)} de ${formatMoney(item.totalExpected)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = AppColors.Gray600
-                    )
-
-                    if (!item.nextDueText.isNullOrBlank()) {
-                        Text(
-                            text = item.nextDueText,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (item.status == AppStatus.OVERDUE) AppColors.Error else AppColors.Gray600
-                        )
-                    }
-                }
-
-                StatusChip(status = item.status)
+                LoanFilterChip(
+                    text = "Pagados",
+                    selected = selectedFilter == LoanListFilter.PAID,
+                    onClick = { onFilterChange(LoanListFilter.PAID) },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
             ) {
-                LoansMiniStatCard(
-                    title = "Saldo",
-                    value = formatMoney(item.remainingAmount),
-                    subtitle = "Pendiente",
-                    modifier = Modifier.weight(1f),
-                    isWarning = item.remainingAmount > 0.0
+                LoanFilterChip(
+                    text = "Cancelados",
+                    selected = selectedFilter == LoanListFilter.CANCELLED,
+                    onClick = { onFilterChange(LoanListFilter.CANCELLED) },
+                    modifier = Modifier.weight(1f)
                 )
 
-                LoansMiniStatCard(
-                    title = "Cuotas",
-                    value = item.installmentSummary,
-                    subtitle = item.installmentStatusText,
-                    modifier = Modifier.weight(1f),
-                    isWarning = item.overdueInstallments > 0
+                LoanFilterChip(
+                    text = "Todos",
+                    selected = selectedFilter == LoanListFilter.ALL,
+                    onClick = { onFilterChange(LoanListFilter.ALL) },
+                    modifier = Modifier.weight(1f)
                 )
             }
+        }
+    }
+}
 
-            SecondaryButton(
-                text = "Ver detalle",
-                onClick = {
-                    onOpenLoanDetail(item.loanId)
-                }
+@Composable
+private fun CompactAddLoanButton(
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .height(54.dp)
+            .clip(RoundedCornerShape(AppRadius.card))
+            .clickable { onClick() },
+        color = AppColors.PrimaryDark,
+        shape = RoundedCornerShape(AppRadius.card),
+        shadowElevation = 1.dp
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = AppSpacing.md),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "+",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.White
             )
         }
     }
 }
 
-private data class LoansScreenState(
-    val loans: List<LoanUiItem>,
-    val totalLoans: Int,
-    val completedLoans: Int,
+@Composable
+private fun LoanFilterChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val color = if (selected) AppColors.AccentTeal else AppColors.Gray500
+
+    Surface(
+        modifier = modifier
+            .height(38.dp)
+            .clip(RoundedCornerShape(AppRadius.pill))
+            .clickable { onClick() },
+        color = if (selected) color.copy(alpha = 0.12f) else AppColors.SurfaceMuted,
+        shape = RoundedCornerShape(AppRadius.pill),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (selected) color.copy(alpha = 0.42f) else AppColors.Border
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoansListCard(
+    rows: List<LoanListRow>,
+    filter: LoanListFilter,
+    searchQuery: String,
+    onCreateLoan: () -> Unit,
+    onClearSearch: () -> Unit,
+    onOpenLoan: (String) -> Unit
+) {
+    ReferenceCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = when (filter) {
+                        LoanListFilter.ACTIVE -> "Préstamos activos"
+                        LoanListFilter.OVERDUE -> "Préstamos vencidos"
+                        LoanListFilter.PAID -> "Préstamos pagados"
+                        LoanListFilter.CANCELLED -> "Préstamos cancelados"
+                        LoanListFilter.ALL -> "Todos los préstamos"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.Gray900
+                )
+
+                Text(
+                    text = "${rows.size} resultados",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppColors.Gray500
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(AppSpacing.sm))
+
+        when {
+            rows.isEmpty() && searchQuery.isBlank() -> {
+                EmptyLoansState(
+                    title = when (filter) {
+                        LoanListFilter.ACTIVE -> "Sin préstamos activos"
+                        LoanListFilter.OVERDUE -> "Sin préstamos vencidos"
+                        LoanListFilter.PAID -> "Sin préstamos pagados"
+                        LoanListFilter.CANCELLED -> "Sin préstamos cancelados"
+                        LoanListFilter.ALL -> "Sin préstamos registrados"
+                    },
+                    description = if (filter == LoanListFilter.ALL || filter == LoanListFilter.ACTIVE) {
+                        "Crea un préstamo para comenzar a controlar la cartera."
+                    } else {
+                        "No hay elementos para este filtro."
+                    },
+                    actionText = if (filter == LoanListFilter.ALL || filter == LoanListFilter.ACTIVE) "Crear préstamo" else null,
+                    onAction = onCreateLoan
+                )
+            }
+
+            rows.isEmpty() -> {
+                EmptyLoansState(
+                    title = "Sin resultados",
+                    description = "No hay coincidencias con la búsqueda actual.",
+                    actionText = "Limpiar",
+                    onAction = onClearSearch
+                )
+            }
+
+            else -> {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
+                ) {
+                    rows.forEach { row ->
+                        LoanReferenceRow(
+                            row = row,
+                            onClick = { onOpenLoan(row.loanId) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoanReferenceRow(
+    row: LoanListRow,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(AppRadius.card))
+            .clickable { onClick() }
+            .background(AppColors.SurfaceMuted)
+            .padding(AppSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ClientAvatar(
+                fullName = row.clientName,
+                size = 42.dp
+            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = row.clientName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.Gray900
+                )
+
+                Text(
+                    text = row.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppColors.Gray500
+                )
+            }
+
+            LoanStatusPill(
+                text = row.statusText,
+                color = row.statusColor
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Capital ${row.principalText}",
+                style = MaterialTheme.typography.labelMedium,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = "Pendiente ${row.pendingText}",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (row.pendingAmount > 0.0) AppColors.Warning else AppColors.Success
+            )
+        }
+
+        Text(
+            text = "Total ${row.totalText} · Interés ${row.interestText} · Diario ${row.dailyText}",
+            style = MaterialTheme.typography.labelMedium,
+            color = AppColors.Gray500
+        )
+
+        ProgressBar(progress = row.progress)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Cobrado ${row.paidText}",
+                style = MaterialTheme.typography.labelSmall,
+                color = AppColors.Gray500
+            )
+
+            Text(
+                text = "${row.progressText} · ${row.startDateText}",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = AppColors.AccentTeal
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoanStatusPill(
+    text: String,
+    color: Color
+) {
+    Surface(
+        color = color.copy(alpha = 0.10f),
+        shape = RoundedCornerShape(AppRadius.pill),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.28f)
+        )
+    ) {
+        Text(
+            modifier = Modifier.padding(
+                horizontal = AppSpacing.sm,
+                vertical = AppSpacing.xs
+            ),
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+    }
+}
+
+@Composable
+private fun EmptyLoansState(
+    title: String,
+    description: String,
+    actionText: String?,
+    onAction: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = AppSpacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppColors.Gray600
+        )
+
+        if (!actionText.isNullOrBlank()) {
+            Surface(
+                modifier = Modifier
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(AppRadius.card))
+                    .clickable { onAction() },
+                color = AppColors.AccentTeal,
+                shape = RoundedCornerShape(AppRadius.card)
+            ) {
+                Box(
+                    modifier = Modifier.padding(horizontal = AppSpacing.md),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = actionText,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProgressBar(
+    progress: Float
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(8.dp)
+            .clip(RoundedCornerShape(AppRadius.pill))
+            .background(AppColors.Gray100)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .height(8.dp)
+                .clip(RoundedCornerShape(AppRadius.pill))
+                .background(AppColors.AccentTeal)
+        )
+    }
+}
+
+@Composable
+private fun ReferenceCard(
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = AppColors.Surface,
+        shape = RoundedCornerShape(AppRadius.cardLarge),
+        shadowElevation = 2.dp,
+        border = BorderStroke(
+            width = 1.dp,
+            color = AppColors.Border
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.cardPaddingLarge),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            content = content
+        )
+    }
+}
+
+private enum class LoanListFilter {
+    ACTIVE,
+    OVERDUE,
+    PAID,
+    CANCELLED,
+    ALL
+}
+
+private enum class LoanListStatus {
+    ACTIVE,
+    OVERDUE,
+    PAID,
+    CANCELLED
+}
+
+private data class LoansSummary(
+    val activeLoans: Int,
     val overdueLoans: Int,
-    val totalPendingAmount: Double
+    val activeCapitalText: String,
+    val overdueAmountText: String,
+    val expectedText: String,
+    val pendingText: String,
+    val progressText: String
 )
 
-private data class LoanUiItem(
+private data class LoanListRow(
     val loanId: String,
     val clientName: String,
-    val planType: RepaymentPlanType,
-    val planLabel: String,
-    val createdDate: String,
-    val totalExpected: Double,
-    val totalPaid: Double,
-    val remainingAmount: Double,
-    val totalInstallments: Int,
-    val paidInstallments: Int,
-    val overdueInstallments: Int,
-    val nextDueText: String?,
-    val status: AppStatus
-) {
-    val installmentSummary: String
-        get() = "$paidInstallments/$totalInstallments"
+    val label: String,
+    val principalText: String,
+    val totalText: String,
+    val paidText: String,
+    val pendingText: String,
+    val interestText: String,
+    val dailyText: String,
+    val startDateText: String,
+    val pendingAmount: Double,
+    val progress: Float,
+    val progressText: String,
+    val status: LoanListStatus,
+    val statusText: String,
+    val statusColor: Color
+)
 
-    val installmentStatusText: String
-        get() = when {
-            overdueInstallments > 0 -> "$overdueInstallments vencidas"
-            remainingAmount <= 0.0 -> "Completado"
-            totalInstallments <= 1 -> "Pago único"
-            else -> "En curso"
+private fun buildLoansSummary(
+    loans: List<Loan>,
+    currencySymbol: String
+): LoansSummary {
+    val activeLoans = loans.filter { loan -> loan.status == LoanStatus.ACTIVE }
+
+    val overdueLoanIds = activeLoans
+        .filter { loan -> isLoanOverdue(loan.id) }
+        .map { loan -> loan.id }
+        .toSet()
+
+    val activeCapital = activeLoans.sumOf { loan -> loan.principalAmount }
+    val expected = activeLoans.sumOf { loan -> loan.totalExpectedAmount }
+
+    val paid = activeLoans.sumOf { loan ->
+        activePaidByLoan(loan.id)
+    }
+
+    val pending = max(expected - paid, 0.0)
+
+    val overdueAmount = activeLoans
+        .filter { loan -> loan.id in overdueLoanIds }
+        .sumOf { loan ->
+            max(loan.totalExpectedAmount - activePaidByLoan(loan.id), 0.0)
         }
-}
 
-private fun buildLoansScreenState(): LoansScreenState {
-    ensureInstallmentsForExistingLoans()
+    val progress = if (expected > 0.0) {
+        (paid / expected) * 100.0
+    } else {
+        0.0
+    }
 
-    val items = LocalLoanRepository.getAllLoans()
-        .map { loan ->
-            loan.toLoanUiItem()
-        }
-
-    return LoansScreenState(
-        loans = items,
-        totalLoans = items.size,
-        completedLoans = items.count { it.status == AppStatus.COMPLETED },
-        overdueLoans = items.count { it.status == AppStatus.OVERDUE },
-        totalPendingAmount = items.sumOf { it.remainingAmount }
+    return LoansSummary(
+        activeLoans = activeLoans.size,
+        overdueLoans = overdueLoanIds.size,
+        activeCapitalText = formatMoney(activeCapital, currencySymbol),
+        overdueAmountText = formatMoney(overdueAmount, currencySymbol),
+        expectedText = formatMoney(expected, currencySymbol),
+        pendingText = formatMoney(pending, currencySymbol),
+        progressText = formatPercent(progress)
     )
 }
 
-private fun ensureInstallmentsForExistingLoans() {
-    LocalLoanRepository.getAllLoans().forEach { loan ->
-        LocalInstallmentRepository.generateInstallmentsForLoan(loan)
-    }
-}
+private fun buildLoanListRow(
+    loan: Loan,
+    currencySymbol: String
+): LoanListRow {
+    val client = LocalClientRepository.getClientById(loan.clientId)
+    val clientName = client?.fullName.orEmpty().ifBlank { "Cliente" }
 
-private fun Loan.toLoanUiItem(): LoanUiItem {
-    val client = LocalClientRepository.getClientById(clientId)
-    val installments = LocalInstallmentRepository.getInstallmentsByLoan(id).filter { it.status != InstallmentStatus.CANCELLED }
-    val totalPaid = LocalPaymentRepository.getTotalPaidByLoan(id)
-    val remainingAmount = max(totalExpectedAmount - totalPaid, 0.0)
-    val overdueInstallments = installments.count {
-        it.status == InstallmentStatus.OVERDUE
-    }
-    val paidInstallments = installments.count {
-        it.status == InstallmentStatus.PAID
-    }
-    val nextInstallment = LocalInstallmentRepository.getNextPendingInstallment(id)
+    val paid = activePaidByLoan(loan.id)
+    val pending = max(loan.totalExpectedAmount - paid, 0.0)
 
-    val status = when {
-        status == LoanStatus.CANCELLED -> AppStatus.INACTIVE
-        remainingAmount <= 0.0 -> AppStatus.COMPLETED
-        overdueInstallments > 0 -> AppStatus.OVERDUE
-        else -> AppStatus.ACTIVE
+    val progress = if (loan.totalExpectedAmount > 0.0) {
+        (paid / loan.totalExpectedAmount).toFloat().coerceIn(0f, 1f)
+    } else {
+        0f
     }
 
-    val nextDueText = nextInstallment?.let { installment ->
-        "Próxima cuota #${installment.number}: ${formatMoney(installment.pendingAmount)} · ${formatDate(installment.dueDateMillis)}"
+    val overdue = loan.status == LoanStatus.ACTIVE && isLoanOverdue(loan.id)
+
+    val rowStatus = when {
+        loan.status == LoanStatus.CANCELLED -> LoanListStatus.CANCELLED
+        loan.status == LoanStatus.PAID -> LoanListStatus.PAID
+        overdue -> LoanListStatus.OVERDUE
+        else -> LoanListStatus.ACTIVE
     }
 
-    return LoanUiItem(
-        loanId = id,
-        clientName = client?.fullName ?: "Cliente no encontrado",
-        planType = repaymentPlanType,
-        planLabel = repaymentPlanType.label,
-        createdDate = formatDate(createdAtMillis),
-        totalExpected = totalExpectedAmount,
-        totalPaid = totalPaid,
-        remainingAmount = remainingAmount,
-        totalInstallments = installments.size,
-        paidInstallments = paidInstallments,
-        overdueInstallments = overdueInstallments,
-        nextDueText = nextDueText,
-        status = status
+    val statusText = when (rowStatus) {
+        LoanListStatus.ACTIVE -> "Activo"
+        LoanListStatus.OVERDUE -> "Vencido"
+        LoanListStatus.PAID -> "Pagado"
+        LoanListStatus.CANCELLED -> "Cancelado"
+    }
+
+    val statusColor = when (rowStatus) {
+        LoanListStatus.ACTIVE -> AppColors.AccentTeal
+        LoanListStatus.OVERDUE -> AppColors.Error
+        LoanListStatus.PAID -> AppColors.Success
+        LoanListStatus.CANCELLED -> AppColors.Gray500
+    }
+
+    return LoanListRow(
+        loanId = loan.id,
+        clientName = clientName,
+        label = loan.description.ifBlank { "Préstamo #${loan.id.takeLast(4)}" },
+        principalText = formatMoney(loan.principalAmount, currencySymbol),
+        totalText = formatMoney(loan.totalExpectedAmount, currencySymbol),
+        paidText = formatMoney(paid, currencySymbol),
+        pendingText = formatMoney(pending, currencySymbol),
+        interestText = formatPercent(loan.interestRatePercent),
+        dailyText = formatMoney(loan.estimatedDailyAmount, currencySymbol),
+        startDateText = formatDate(loan.startDateMillis),
+        pendingAmount = pending,
+        progress = progress,
+        progressText = formatPercent(progress.toDouble() * 100.0),
+        status = rowStatus,
+        statusText = statusText,
+        statusColor = statusColor
     )
 }
 
-private fun List<LoanUiItem>.filterByTab(tab: LoansTab): List<LoanUiItem> {
-    return when (tab) {
-        LoansTab.ALL -> this
-        LoansTab.ACTIVE -> filter { it.status == AppStatus.ACTIVE }
-        LoansTab.OVERDUE -> filter { it.status == AppStatus.OVERDUE }
-        LoansTab.COMPLETED -> filter { it.status == AppStatus.COMPLETED }
-        LoansTab.SINGLE_PAYMENT -> filter { it.planType == RepaymentPlanType.SINGLE_PAYMENT }
-        LoansTab.INSTALLMENTS -> filter { it.planType == RepaymentPlanType.INSTALLMENTS }
-    }
+private fun activePaidByLoan(loanId: String): Double {
+    return LocalPaymentRepository
+        .getPaymentsByLoan(loanId)
+        .filter { payment -> payment.status == PaymentStatus.ACTIVE }
+        .sumOf { payment -> payment.amount }
 }
 
-private fun emptyTitleForTab(tab: LoansTab): String {
-    return when (tab) {
-        LoansTab.ALL -> "No hay préstamos"
-        LoansTab.ACTIVE -> "No hay préstamos activos"
-        LoansTab.OVERDUE -> "No hay préstamos vencidos"
-        LoansTab.COMPLETED -> "No hay préstamos completados"
-        LoansTab.SINGLE_PAYMENT -> "No hay préstamos de pago único"
-        LoansTab.INSTALLMENTS -> "No hay préstamos por cuotas"
-    }
+private fun isLoanOverdue(loanId: String): Boolean {
+    return LocalInstallmentRepository
+        .getInstallmentsByLoan(loanId)
+        .any { installment -> installment.status == InstallmentStatus.OVERDUE }
 }
 
-private fun emptyDescriptionForTab(tab: LoansTab): String {
-    return when (tab) {
-        LoansTab.ALL -> "Crea un préstamo desde el detalle de un cliente."
-        LoansTab.ACTIVE -> "Los préstamos con saldo pendiente aparecerán aquí."
-        LoansTab.OVERDUE -> "Los préstamos con cuotas vencidas aparecerán aquí."
-        LoansTab.COMPLETED -> "Los préstamos finalizados aparecerán aquí."
-        LoansTab.SINGLE_PAYMENT -> "Los préstamos de una sola cuota aparecerán aquí."
-        LoansTab.INSTALLMENTS -> "Los préstamos divididos en cuotas aparecerán aquí."
-    }
+private fun formatMoney(
+    value: Double,
+    currencySymbol: String
+): String {
+    return currencySymbol + DecimalFormat("#,##0").format(value)
 }
 
-private fun formatMoney(value: Double): String {
-    return screenCurrencySymbol + DecimalFormat("#,##0.00").format(value)
+private fun formatPercent(value: Double): String {
+    return DecimalFormat("#,##0.#").format(value) + "%"
 }
 
 private fun formatDate(millis: Long): String {
-    return SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        .format(Date(millis))
+    return SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(millis))
 }
-
-
-
-
-
-
-
 
