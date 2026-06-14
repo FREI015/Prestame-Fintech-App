@@ -1,0 +1,1263 @@
+﻿CONTROL PRESTAMOS - AUDITORIA REAL DASHBOARD V1.1
+
+Fecha:
+20260613-233815
+
+Rama:
+feature/v1.1-premium-dashboard-security
+
+Commit actual:
+6a19c5b V1.1 unificar login premium y eliminar vista vieja
+
+Objetivo:
+- Revisar DashboardScreen y modelos reales antes de rediseñar.
+- Detectar campos financieros reales.
+- Evitar lógica falsa, duplicada o huérfana.
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt
+=====================================================
+EXISTE: SI
+LINEAS: 976
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.dashboard.presentation
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.controlprestamos.core.ui.components.AppBottomNavigationBar
+import com.controlprestamos.core.ui.components.AppCard
+import com.controlprestamos.core.ui.components.AppTopBar
+import com.controlprestamos.core.ui.theme.AppColors
+import com.controlprestamos.core.ui.theme.AppSpacing
+import com.controlprestamos.features.clients.data.LocalClientRepository
+import com.controlprestamos.core.rules.FinancialOperationRules
+import com.controlprestamos.features.installments.data.LocalInstallmentRepository
+import com.controlprestamos.features.installments.domain.model.InstallmentStatus
+import com.controlprestamos.features.loans.data.LocalLoanRepository
+import com.controlprestamos.features.payments.data.LocalPaymentRepository
+import com.controlprestamos.features.payments.domain.model.Payment
+import com.controlprestamos.features.preferences.data.LocalPreferencesRepository
+import java.text.DecimalFormat
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import kotlin.math.max
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+@Composable
+fun DashboardScreen(
+@Composable
+private fun DashboardExecutiveCard(
+@Composable
+private fun CollectionProgressCard(
+@Composable
+private fun SevenDayCollectionCard(
+@Composable
+private fun PortfolioHealthCard(
+@Composable
+private fun DashboardAlertsCard(
+@Composable
+private fun SectionTitle(
+@Composable
+private fun DashboardMetricCard(
+@Composable
+private fun CompactInfo(
+@Composable
+private fun ProgressBarLine(
+@Composable
+private fun SevenDayBarChart(
+@Composable
+private fun IndicatorRow(
+@Composable
+private fun AlertText(
+private data class DashboardState(
+private data class DailyCollection(
+private fun buildDashboardState(
+private fun buildLastSevenDaysPayments(
+private fun startOfTodayMillis(): Long {
+private fun endOfTodayMillis(): Long {
+private fun startOfCurrentWeekMillis(): Long {
+private fun startOfCurrentMonthMillis(): Long {
+private fun startOfDayMillis(millis: Long): Long {
+private fun endOfDayMillis(millis: Long): Long {
+private fun isToday(millis: Long): Boolean {
+private fun formatMoney(
+private fun formatShortMoney(
+private fun formatPercent(value: Double): String {
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+principalAmount	1
+totalExpectedAmount	4
+createdAtMillis	5
+dueDate	1
+dueDateMillis	1
+status	5
+amount	13
+loanId	2
+clientId	2
+PAID	1
+CANCELLED	1
+PENDING	1
+PARTIAL	1
+OVERDUE	1
+payment	37
+installment	10
+loan	27
+client	20
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\clients\domain\model\Client.kt
+=====================================================
+EXISTE: SI
+LINEAS: 25
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.clients.domain.model
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+enum class ClientStatus(
+data class Client(
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+createdAtMillis	1
+status	1
+ACTIVE	2
+client	1
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\clients\domain\model\ClientStatus.kt
+=====================================================
+NO ENCONTRADO
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\clients\data\LocalClientRepository.kt
+=====================================================
+EXISTE: SI
+LINEAS: 276
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.clients.data
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.compose.runtime.mutableStateListOf
+import com.controlprestamos.features.clients.domain.model.Client
+import com.controlprestamos.features.clients.domain.model.ClientStatus
+import com.controlprestamos.features.clients.domain.model.CreateClientInput
+import com.controlprestamos.features.clients.domain.model.UpdateClientInput
+import com.controlprestamos.features.clients.domain.repository.ClientRepository
+import com.controlprestamos.features.loans.data.LocalLoanRepository
+import com.controlprestamos.features.payments.data.LocalPaymentRepository
+import java.util.UUID
+import org.json.JSONArray
+import org.json.JSONObject
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+object LocalClientRepository : ClientRepository {
+    fun initialize(context: Context) {
+    fun reloadFromStorage(context: Context) {
+    override fun getClients(): List<Client> {
+    fun getActiveClients(): List<Client> {
+    fun getInactiveClients(): List<Client> {
+    override fun getClientById(clientId: String): Client? {
+    override fun createClient(input: CreateClientInput): Client {
+    override fun updateClient(input: UpdateClientInput): Boolean {
+    override fun updateClientStatus(
+    fun findDuplicateClient(
+    fun buildDuplicateClientMessage(client: Client): String {
+    fun hasFinancialHistory(clientId: String): Boolean {
+    fun canSafelyHardDeleteClient(clientId: String): Boolean {
+    fun archiveClientSafely(clientId: String): Boolean {
+    fun reactivateClient(clientId: String): Boolean {
+    private fun loadClients() {
+    private fun saveClients() {
+    private fun Client.toJson(): JSONObject {
+    private fun JSONObject.toClient(): Client {
+    private fun statusFromName(value: String): ClientStatus {
+    private fun normalizeDocument(value: String): String {
+    private fun normalizePhone(value: String): String {
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+createdAtMillis	5
+status	16
+clientId	19
+ACTIVE	8
+payment	3
+loan	3
+client	59
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\clients\data\LocalClientExtraRepository.kt
+=====================================================
+EXISTE: SI
+LINEAS: 140
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.clients.data
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.compose.runtime.mutableStateMapOf
+import org.json.JSONArray
+import org.json.JSONObject
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+data class ClientExtraInfo(
+object LocalClientExtraRepository {
+    fun initialize(context: Context) {
+    fun reloadFromStorage(context: Context) {
+    fun getExtra(clientId: String): ClientExtraInfo {
+    fun saveExtra(extra: ClientExtraInfo) {
+    fun deleteExtra(clientId: String) {
+    private fun loadExtras() {
+    private fun saveExtras() {
+    private fun ClientExtraInfo.toJson(): JSONObject {
+    private fun JSONObject.toClientExtraInfo(): ClientExtraInfo {
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+clientId	15
+client	18
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\loans\domain\model\Loan.kt
+=====================================================
+EXISTE: SI
+LINEAS: 18
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.loans.domain.model
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+data class Loan(
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+principalAmount	1
+interestRatePercent	1
+totalExpectedAmount	1
+estimatedDailyAmount	1
+createdAtMillis	2
+startDateMillis	1
+status	1
+clientId	1
+ACTIVE	1
+payment	3
+loan	1
+client	1
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\loans\domain\model\LoanStatus.kt
+=====================================================
+EXISTE: SI
+LINEAS: 10
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.loans.domain.model
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+enum class LoanStatus(
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+ACTIVE	1
+PAID	1
+CANCELLED	1
+loan	1
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt
+=====================================================
+EXISTE: SI
+LINEAS: 347
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.loans.data
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.compose.runtime.mutableStateListOf
+import com.controlprestamos.features.loans.domain.model.CreateLoanInput
+import com.controlprestamos.features.loans.domain.model.Loan
+import com.controlprestamos.features.loans.domain.model.LoanStatus
+import com.controlprestamos.features.loans.domain.model.RepaymentPlanType
+import com.controlprestamos.features.loans.domain.model.UpdateLoanInput
+import com.controlprestamos.features.payments.data.LocalPaymentRepository
+import java.util.UUID
+import org.json.JSONArray
+import org.json.JSONObject
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+object LocalLoanRepository {
+    fun initialize(context: Context) {
+    fun reloadFromStorage(context: Context) {
+    fun getAllLoans(): List<Loan> {
+    fun getActiveLoans(): List<Loan> {
+    fun getCancelledLoans(): List<Loan> {
+    fun getLoansByClient(clientId: String): List<Loan> {
+    fun getLoanById(loanId: String): Loan? {
+    fun createLoan(input: CreateLoanInput): Loan {
+    fun updateLoan(input: UpdateLoanInput): Loan? {
+    fun updateLoanDescription(
+    fun markLoanAsPaid(loanId: String): Loan? {
+    fun updateLoanStatusByBalance(
+    fun cancelLoan(
+    private fun loadLoans() {
+    private fun saveLoans() {
+    private fun Loan.toJson(): JSONObject {
+    private fun JSONObject.toLoan(): Loan {
+    private fun repaymentPlanTypeFromName(value: String): RepaymentPlanType {
+    private fun loanStatusFromName(value: String): LoanStatus {
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+principalAmount	8
+interestRatePercent	8
+totalExpectedAmount	6
+estimatedDailyAmount	10
+createdAtMillis	12
+startDateMillis	9
+status	17
+loanId	12
+clientId	9
+ACTIVE	5
+PAID	3
+CANCELLED	7
+payment	15
+loan	52
+client	9
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\payments\domain\model\Payment.kt
+=====================================================
+EXISTE: SI
+LINEAS: 14
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.payments.domain.model
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+data class Payment(
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+createdAtMillis	1
+status	1
+amount	1
+loanId	1
+payment	1
+loan	1
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\payments\domain\model\PaymentStatus.kt
+=====================================================
+EXISTE: SI
+LINEAS: 8
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.payments.domain.model
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+enum class PaymentStatus(
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+ACTIVE	1
+CANCELLED	1
+payment	1
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt
+=====================================================
+EXISTE: SI
+LINEAS: 217
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.payments.data
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.compose.runtime.mutableStateListOf
+import com.controlprestamos.features.loans.data.LocalLoanRepository
+import com.controlprestamos.features.payments.domain.model.CreatePaymentInput
+import com.controlprestamos.features.payments.domain.model.Payment
+import com.controlprestamos.features.payments.domain.model.PaymentStatus
+import com.controlprestamos.features.payments.domain.repository.PaymentRepository
+import java.util.UUID
+import org.json.JSONArray
+import org.json.JSONObject
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+object LocalPaymentRepository : PaymentRepository {
+    fun initialize(context: Context) {
+    fun reloadFromStorage(context: Context) {
+    fun getAllPayments(): List<Payment> {
+    fun getAllPaymentHistory(): List<Payment> {
+    override fun getPaymentsByLoan(loanId: String): List<Payment> {
+    override fun getPaymentHistoryByLoan(loanId: String): List<Payment> {
+    override fun getPaymentById(paymentId: String): Payment? {
+    override fun getPaymentsByClient(clientId: String): List<Payment> {
+    override fun getPaymentHistoryByClient(clientId: String): List<Payment> {
+    override fun getTotalPaidByLoan(loanId: String): Double {
+    override fun createPayment(input: CreatePaymentInput): Payment {
+    override fun cancelPayment(
+    private fun loadPayments() {
+    private fun savePayments() {
+    private fun Payment.toJson(): JSONObject {
+    private fun JSONObject.toPayment(): Payment {
+    private fun statusFromName(value: String): PaymentStatus {
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+createdAtMillis	11
+status	13
+amount	9
+loanId	17
+clientId	4
+ACTIVE	7
+CANCELLED	2
+payment	33
+loan	18
+client	8
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\installments\domain\model\Installment.kt
+=====================================================
+EXISTE: SI
+LINEAS: 14
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.installments.domain.model
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+data class Installment(
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+createdAtMillis	1
+dueDate	1
+dueDateMillis	1
+status	1
+loanId	1
+installment	1
+loan	1
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\installments\domain\model\InstallmentStatus.kt
+=====================================================
+EXISTE: SI
+LINEAS: 11
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.installments.domain.model
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+enum class InstallmentStatus(
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+PAID	1
+CANCELLED	1
+PENDING	1
+PARTIAL	1
+OVERDUE	1
+installment	1
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt
+=====================================================
+EXISTE: SI
+LINEAS: 416
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.installments.data
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.compose.runtime.mutableStateListOf
+import com.controlprestamos.features.installments.domain.model.Installment
+import com.controlprestamos.features.installments.domain.model.InstallmentStatus
+import com.controlprestamos.features.loans.data.LocalLoanRepository
+import com.controlprestamos.features.loans.domain.model.Loan
+import com.controlprestamos.features.payments.data.LocalPaymentRepository
+import com.controlprestamos.features.loans.domain.model.RepaymentPlanType
+import java.util.Calendar
+import java.util.UUID
+import org.json.JSONArray
+import org.json.JSONObject
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+object LocalInstallmentRepository {
+    fun initialize(context: Context) {
+    fun reloadFromStorage(context: Context) {
+    fun getAllInstallments(): List<Installment> {
+    fun getInstallmentsByLoan(loanId: String): List<Installment> {
+    fun getPendingInstallmentsByLoan(loanId: String): List<Installment> {
+    fun getNextPendingInstallment(loanId: String): Installment? {
+    fun generateInstallmentsForLoan(loan: Loan): List<Installment> {
+    fun applyPaymentToInstallments(
+    fun applyPaymentToInstallments(
+    fun refreshOverdueStatuses() {
+    private fun calculateDueDateMillis(
+    private fun startOfTodayMillis(): Long {
+    private fun loadInstallments() {
+    private fun saveInstallments() {
+    private fun Installment.toJson(): JSONObject {
+    private fun JSONObject.toInstallment(): Installment {
+    private fun statusFromName(value: String): InstallmentStatus {
+    fun rebuildInstallmentsForLoan(
+    fun removeInstallmentsForLoan(loanId: String) {
+    fun cancelInstallmentsForLoan(loanId: String) {
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+totalExpectedAmount	2
+createdAtMillis	7
+startDateMillis	1
+dueDate	7
+dueDateMillis	7
+status	14
+amount	7
+loanId	30
+PAID	2
+CANCELLED	1
+PENDING	5
+PARTIAL	3
+OVERDUE	2
+payment	22
+installment	67
+loan	56
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\core\app\AppDependencies.kt
+=====================================================
+EXISTE: SI
+LINEAS: 19
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.core.app
+import android.content.Context
+import com.controlprestamos.features.clients.data.LocalClientRepository
+import com.controlprestamos.features.installments.data.LocalInstallmentRepository
+import com.controlprestamos.features.loans.data.LocalLoanRepository
+import com.controlprestamos.features.payments.data.LocalPaymentRepository
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+object AppDependencies {
+    fun initialize(context: Context) {
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+payment	1
+installment	1
+loan	1
+client	1
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt
+=====================================================
+EXISTE: SI
+LINEAS: 139
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.core.rules
+import com.controlprestamos.features.clients.domain.model.Client
+import com.controlprestamos.features.clients.domain.model.ClientStatus
+import com.controlprestamos.features.loans.domain.model.Loan
+import com.controlprestamos.features.loans.domain.model.LoanStatus
+import com.controlprestamos.features.payments.domain.model.Payment
+import com.controlprestamos.features.payments.domain.model.PaymentStatus
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+object FinancialOperationRules {
+    fun canCreateLoanForClient(client: Client?): Boolean {
+    fun canRegisterPaymentForLoan(
+    fun canShowClientInOperationalLists(client: Client?): Boolean {
+    fun canShowClientInHistory(client: Client?): Boolean {
+    fun canGenerateClientCollectionPdf(client: Client?): Boolean {
+    fun canArchiveClient(client: Client?): Boolean {
+    fun canReactivateClient(client: Client?): Boolean {
+    fun canEditLoanFinancialFields(
+    fun canEditLoanDescription(loan: Loan?): Boolean {
+    fun canCancelPayment(payment: Payment?): Boolean {
+    fun canSharePaymentReceipt(payment: Payment?): Boolean {
+    fun shouldCountLoanInOperationalReports(
+    fun shouldCountPaymentFinancially(payment: Payment?): Boolean {
+    fun isClosedLoan(loan: Loan?): Boolean {
+    fun getClientStatusLabel(client: Client?): String {
+    fun getLoanStatusLabel(loan: Loan?): String {
+    fun getPaymentStatusLabel(payment: Payment?): String {
+    fun getClientOperationMessage(client: Client?): String {
+    fun getLoanOperationMessage(loan: Loan?): String {
+    fun getPaymentOperationMessage(payment: Payment?): String {
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+status	20
+ACTIVE	18
+PAID	3
+CANCELLED	7
+payment	12
+loan	19
+client	22
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\features\preferences\data\LocalPreferencesRepository.kt
+=====================================================
+EXISTE: SI
+LINEAS: 38
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.features.preferences.data
+import android.content.Context
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+data class AppPreferences(
+object LocalPreferencesRepository {
+    fun getPreferences(context: Context): AppPreferences {
+    fun savePreferences(
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\core\ui\components\ClientAvatar.kt
+=====================================================
+EXISTE: SI
+LINEAS: 52
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.core.ui.components
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.controlprestamos.core.ui.theme.AppColors
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+@Composable
+fun ClientAvatar(
+private fun buildInitials(fullName: String): String {
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+
+=====================================================
+ARCHIVO: app\src\main\java\com\controlprestamos\core\ui\theme\AppColors.kt
+=====================================================
+EXISTE: SI
+LINEAS: 31
+
+PACKAGE / IMPORTS:
+package com.controlprestamos.core.ui.theme
+import androidx.compose.ui.graphics.Color
+
+CLASES / ENUMS / FUNCIONES / COMPOSABLES:
+object AppColors {
+
+CAMPOS Y TERMINOS FINANCIEROS DETECTADOS:
+
+=====================================================
+BUSQUEDA GLOBAL
+=====================================================
+
+TERM: DashboardScreen
+.\app\src\main\java\com\controlprestamos\core\navigation\AppNavGraph.kt:22: import com.controlprestamos.features.dashboard.presentation.DashboardScreen
+.\app\src\main\java\com\controlprestamos\core\navigation\AppNavGraph.kt:180: DashboardScreen(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:48: fun DashboardScreen(
+
+TERM: SummaryCard
+.\app\src\main\java\com\controlprestamos\core\ui\components\SummaryCard.kt:24: fun SummaryCard(
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:93: AuditSummaryCard(
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:162: private fun AuditSummaryCard(
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:140: LoanCalendarSummaryCard(
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:149: LoanMoneySummaryCard(
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:260: private fun LoanCalendarSummaryCard(
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:324: private fun LoanMoneySummaryCard(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:197: PaymentLoanSummaryCard(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:336: private fun PaymentLoanSummaryCard(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt:160: PaymentHistorySummaryCard(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt:303: private fun PaymentHistorySummaryCard(
+
+TERM: ChartCard
+.\app\src\main\java\com\controlprestamos\core\ui\components\ChartCard.kt:30: fun ChartCard(
+
+TERM: Progress
+.\app\src\main\java\com\controlprestamos\core\ui\components\ProgressStatCard.kt:21: fun ProgressStatCard(
+.\app\src\main\java\com\controlprestamos\core\ui\components\ProgressStatCard.kt:25: progress: Float,
+.\app\src\main\java\com\controlprestamos\core\ui\components\ProgressStatCard.kt:28: val safeProgress = progress.coerceIn(0f, 1f)
+.\app\src\main\java\com\controlprestamos\core\ui\components\ProgressStatCard.kt:68: .fillMaxWidth(safeProgress)
+.\app\src\main\java\com\controlprestamos\core\ui\components\ProgressStatCard.kt:78: text = "${(safeProgress * 100).toInt()}% cobrado",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:189: CollectionProgressCard(state = state)
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:261: private fun CollectionProgressCard(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:276: ProgressBarLine(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:284: ProgressBarLine(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:292: ProgressBarLine(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:520: private fun ProgressBarLine(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:527: val progress = if (total > 0.0) {
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:547: text = "${formatMoney(value, currencySymbol)} · ${formatPercent(progress.toDouble())}",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:563: .fillMaxWidth(progress)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\LoanProgressOverviewCard.kt:23: fun LoanProgressOverviewCard(
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\LoanProgressOverviewCard.kt:27: progress: Float,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\LoanProgressOverviewCard.kt:30: val safeProgress = progress.coerceIn(0f, 1f)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\LoanProgressOverviewCard.kt:70: .fillMaxWidth(safeProgress)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\LoanProgressOverviewCard.kt:80: text = "${(safeProgress * 100).toInt()}% cobrado · Pendiente: ${formatMoney(remainingAmount)}",
+
+TERM: alert
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:13: enum class DashboardAlertType {
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:20: fun DashboardAlertCard(
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:23: type: DashboardAlertType,
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:27: DashboardAlertType.SUCCESS -> AppColors.Success
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:28: DashboardAlertType.WARNING -> AppColors.Warning
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:29: DashboardAlertType.INFO -> AppColors.AccentTeal
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:176: totals.warningCount > 0 -> "Hay alertas menores"
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:573: AuditStatus.WARNING -> "Alerta: hay detalles que revisar."
+.\app\src\main\java\com\controlprestamos\features\backup\data\LocalBackupRepository.kt:58: appendLine("Alertas:")
+.\app\src\main\java\com\controlprestamos\features\backup\data\LocalBackupRepository.kt:257: "Backup válido, pero con alertas para revisar."
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:195: DashboardAlertsCard(state = state)
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:362: private fun DashboardAlertsCard(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:373: title = "Alertas",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:379: AlertText(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:386: AlertText(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:393: AlertText(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:400: AlertText(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:649: private fun AlertText(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:133: DailyCollectionAlert(state = state)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:255: private fun DailyCollectionAlert(
+
+TERM: Alert
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:13: enum class DashboardAlertType {
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:20: fun DashboardAlertCard(
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:23: type: DashboardAlertType,
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:27: DashboardAlertType.SUCCESS -> AppColors.Success
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:28: DashboardAlertType.WARNING -> AppColors.Warning
+.\app\src\main\java\com\controlprestamos\core\ui\components\DashboardAlertCard.kt:29: DashboardAlertType.INFO -> AppColors.AccentTeal
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:176: totals.warningCount > 0 -> "Hay alertas menores"
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:573: AuditStatus.WARNING -> "Alerta: hay detalles que revisar."
+.\app\src\main\java\com\controlprestamos\features\backup\data\LocalBackupRepository.kt:58: appendLine("Alertas:")
+.\app\src\main\java\com\controlprestamos\features\backup\data\LocalBackupRepository.kt:257: "Backup válido, pero con alertas para revisar."
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:195: DashboardAlertsCard(state = state)
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:362: private fun DashboardAlertsCard(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:373: title = "Alertas",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:379: AlertText(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:386: AlertText(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:393: AlertText(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:400: AlertText(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:649: private fun AlertText(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:133: DailyCollectionAlert(state = state)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:255: private fun DailyCollectionAlert(
+
+TERM: cobro
+.\app\src\main\java\com\controlprestamos\core\ui\components\ChartCard.kt:75: text = "Sin cobros para graficar",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:220: text = "Resumen operativo de cartera, cobros y vencimientos. No incluye clientes archivados.",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:401: text = "No hay cuotas vencidas ni cobros pendientes para hoy.",
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt:113: text = "Consulta préstamos, saldo pendiente y estado de cobro.",
+.\app\src\main\java\com\controlprestamos\features\more\presentation\MoreScreen.kt:81: description = "Resumen general de clientes, préstamos, cobros y vencidos.",
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:580: title = "Sin cobros hoy",
+
+TERM: Cobro
+.\app\src\main\java\com\controlprestamos\core\ui\components\ChartCard.kt:75: text = "Sin cobros para graficar",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:220: text = "Resumen operativo de cartera, cobros y vencimientos. No incluye clientes archivados.",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:401: text = "No hay cuotas vencidas ni cobros pendientes para hoy.",
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt:113: text = "Consulta préstamos, saldo pendiente y estado de cobro.",
+.\app\src\main\java\com\controlprestamos\features\more\presentation\MoreScreen.kt:81: description = "Resumen general de clientes, préstamos, cobros y vencidos.",
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:580: title = "Sin cobros hoy",
+
+TERM: vencido
+.\app\src\main\java\com\controlprestamos\core\ui\components\StatusChip.kt:22: OVERDUE("Vencido"),
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:435: rightLabel = "Saldo vencido",
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:631: "Hola $clientName, le compartimos su estado de cobranza de $businessName. Saldo pendiente: $pendingText. Saldo vencido: $overdueText. Cuotas vencidas: $overdueCount. Por favor revise el detalle del documento y comuníquese para coordinar su pago."
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:173: title = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:250: title = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:293: label = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:58: OVERDUE("Vencidos"),
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:172: text = "Consulta activos, vencidos, completados y separa pago único de cuotas.",
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:202: title = "Vencidos",
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:553: LoansTab.OVERDUE -> "No hay préstamos vencidos"
+.\app\src\main\java\com\controlprestamos\features\more\presentation\MoreScreen.kt:81: description = "Resumen general de clientes, préstamos, cobros y vencidos.",
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:207: text = "Prioriza vencidos, cobra lo de hoy y mantén tu cartera al día.",
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:225: title = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:206: title = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:283: title = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:811: Total vencido: ${state.totalOverdueFormatted}
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:840: ReportPdfLine("Total vencido", state.totalOverdueFormatted),
+
+TERM: Vencido
+.\app\src\main\java\com\controlprestamos\core\ui\components\StatusChip.kt:22: OVERDUE("Vencido"),
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:435: rightLabel = "Saldo vencido",
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:631: "Hola $clientName, le compartimos su estado de cobranza de $businessName. Saldo pendiente: $pendingText. Saldo vencido: $overdueText. Cuotas vencidas: $overdueCount. Por favor revise el detalle del documento y comuníquese para coordinar su pago."
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:173: title = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:250: title = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:293: label = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:58: OVERDUE("Vencidos"),
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:172: text = "Consulta activos, vencidos, completados y separa pago único de cuotas.",
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:202: title = "Vencidos",
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:553: LoansTab.OVERDUE -> "No hay préstamos vencidos"
+.\app\src\main\java\com\controlprestamos\features\more\presentation\MoreScreen.kt:81: description = "Resumen general de clientes, préstamos, cobros y vencidos.",
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:207: text = "Prioriza vencidos, cobra lo de hoy y mantén tu cartera al día.",
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:225: title = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:206: title = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:283: title = "Vencido",
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:811: Total vencido: ${state.totalOverdueFormatted}
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:840: ReportPdfLine("Total vencido", state.totalOverdueFormatted),
+
+TERM: overdue
+.\app\src\main\java\com\controlprestamos\core\ui\components\StatusChip.kt:22: OVERDUE("Vencido"),
+.\app\src\main\java\com\controlprestamos\core\ui\components\StatusChip.kt:49: AppStatus.OVERDUE -> StatusStyle(
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:108: val overdueInstallments = collectibleInstallments
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:109: .filter { installment -> installment.status == InstallmentStatus.OVERDUE }
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:112: .filter { installment -> installment.status != InstallmentStatus.OVERDUE }
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:119: val totalOverdue = overdueInstallments.sumOf { installment ->
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:144: totalOverdue = totalOverdue,
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:146: overdueCount = overdueInstallments.size
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:199: if (overdueInstallments.isEmpty()) {
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:208: overdueInstallments.take(12).forEach { installment ->
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:218: if (overdueInstallments.size > 12) {
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:220: "Hay ${overdueInstallments.size - 12} cuotas vencidas adicionales no mostradas en este resumen.",
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:276: totalOverdue = totalOverdue,
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:277: overdueCount = overdueInstallments.size,
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:414: totalOverdue: Double,
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:416: overdueCount: Int
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:436: rightValue = PdfDocumentUtils.formatMoney(totalOverdue, currencySymbol)
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:446: rightValue = overdueCount.toString()
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:621: totalOverdue: Double,
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:622: overdueCount: Int,
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:628: val overdueText = PdfDocumentUtils.formatMoney(totalOverdue, currencySymbol)
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:631: "Hola $clientName, le compartimos su estado de cobranza de $businessName. Saldo pendiente: $pendingText. Saldo vencido: $overdueText. Cuotas vencidas: $overdueCount. Por favor revise el detalle del documento y comuníquese para coordinar su pago."
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:174: value = state.overdueAmountFormatted,
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:175: subtitle = "${state.overdueInstallments} cuotas",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:177: danger = state.overdueAmount > 0.0
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:251: value = state.overdueAmountFormatted,
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:253: danger = state.overdueAmount > 0.0
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:294: value = state.overdueAmount,
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:385: state.overdueInstallments > 0 -> {
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:387: text = "Hay ${state.overdueInstallments} cuotas vencidas por ${state.overdueAmountFormatted}.",
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:672: val overdueInstallments: Int,
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:678: val overdueAmount: Double,
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:698: val overdueAmountFormatted: String
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:699: get() = formatMoney(overdueAmount, currencySymbol)
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:776: val overdueInstallments = installments.filter {
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:777: it.status == InstallmentStatus.OVERDUE
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:829: overdueInstallments = overdueInstallments.size,
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:835: overdueAmount = overdueInstallments.sumOf { it.pendingAmount },
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:31: refreshOverdueStatuses()
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:38: refreshOverdueStatuses()
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:43: refreshOverdueStatuses()
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:52: refreshOverdueStatuses()
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:60: refreshOverdueStatuses()
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:68: InstallmentStatus.OVERDUE
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:119: refreshOverdueStatuses()
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:183: refreshOverdueStatuses()
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:201: fun refreshOverdueStatuses() {
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:206: val shouldBeOverdue =
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:214: if (shouldBeOverdue) {
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:216: installment.copy(status = InstallmentStatus.OVERDUE)
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:351: refreshOverdueStatuses()
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:385: refreshOverdueStatuses()
+.\app\src\main\java\com\controlprestamos\features\installments\domain\model\InstallmentStatus.kt:9: OVERDUE("Vencida"),
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:105: it.status == InstallmentStatus.OVERDUE
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:107: val overdueInstallments = installments.filter {
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:108: it.status == InstallmentStatus.OVERDUE
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:120: overdueCount = overdueInstallments.size
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:144: overdueCount = overdueInstallments.size,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:264: overdueCount: Int,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:309: value = overdueCount.toString(),
+
+TERM: collection
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:34: fun canGenerateClientCollectionPdf(client: Client?): Boolean {
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:1: package com.controlprestamos.features.clients.domain.collection
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:22: object ClientCollectionPdfGenerator {
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:22: import com.controlprestamos.features.clients.domain.collection.ClientCollectionPdfGenerator
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:201: val file = ClientCollectionPdfGenerator.generate(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:189: CollectionProgressCard(state = state)
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:191: SevenDayCollectionCard(state = state)
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:261: private fun CollectionProgressCard(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:273: subtitle = "${state.collectionRateFormatted} del total a cobrar ha sido cobrado."
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:304: private fun SevenDayCollectionCard(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:574: days: List<DailyCollection>,
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:683: val lastSevenDays: List<DailyCollection>,
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:720: val collectionRateFormatted: String
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:728: private data class DailyCollection(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:847: ): List<DailyCollection> {
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:848: val result = mutableListOf<DailyCollection>()
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:873: DailyCollection(
+.\app\src\main\java\com\controlprestamos\features\payments\domain\collection\CollectionPdfGenerator.kt:1: package com.controlprestamos.features.payments.domain.collection
+.\app\src\main\java\com\controlprestamos\features\payments\domain\collection\CollectionPdfGenerator.kt:11: data class CollectionPdfItem(
+.\app\src\main\java\com\controlprestamos\features\payments\domain\collection\CollectionPdfGenerator.kt:17: object CollectionPdfGenerator {
+.\app\src\main\java\com\controlprestamos\features\payments\domain\collection\CollectionPdfGenerator.kt:22: items: List<CollectionPdfItem>,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentCollectionPdfButton.kt:11: import com.controlprestamos.features.payments.domain.collection.CollectionPdfGenerator
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentCollectionPdfButton.kt:12: import com.controlprestamos.features.payments.domain.collection.CollectionPdfItem
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentCollectionPdfButton.kt:16: fun PaymentCollectionPdfButton() {
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentCollectionPdfButton.kt:37: CollectionPdfItem(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentCollectionPdfButton.kt:44: val file = CollectionPdfGenerator.generate(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:133: DailyCollectionAlert(state = state)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:145: installments = state.todayCollectionInstallments,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:204: PaymentCollectionPdfButton()
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:218: value = formatMoney(state.todayCollectionAmount),
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:219: subtitle = "${state.todayCollectionInstallments.size} cuotas",
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:221: isWarning = state.todayCollectionAmount > 0.0
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:255: private fun DailyCollectionAlert(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:641: val todayCollectionInstallments: List<Installment>,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:647: val todayCollectionAmount: Double,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:709: val todayCollectionInstallments = (overdueInstallments + todayDueInstallments)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:725: todayCollectionInstallments = todayCollectionInstallments,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:731: todayCollectionAmount = todayCollectionInstallments.sumOf { it.pendingAmount },
+
+TERM: Collection
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:34: fun canGenerateClientCollectionPdf(client: Client?): Boolean {
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:1: package com.controlprestamos.features.clients.domain.collection
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:22: object ClientCollectionPdfGenerator {
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:22: import com.controlprestamos.features.clients.domain.collection.ClientCollectionPdfGenerator
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:201: val file = ClientCollectionPdfGenerator.generate(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:189: CollectionProgressCard(state = state)
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:191: SevenDayCollectionCard(state = state)
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:261: private fun CollectionProgressCard(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:273: subtitle = "${state.collectionRateFormatted} del total a cobrar ha sido cobrado."
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:304: private fun SevenDayCollectionCard(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:574: days: List<DailyCollection>,
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:683: val lastSevenDays: List<DailyCollection>,
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:720: val collectionRateFormatted: String
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:728: private data class DailyCollection(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:847: ): List<DailyCollection> {
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:848: val result = mutableListOf<DailyCollection>()
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:873: DailyCollection(
+.\app\src\main\java\com\controlprestamos\features\payments\domain\collection\CollectionPdfGenerator.kt:1: package com.controlprestamos.features.payments.domain.collection
+.\app\src\main\java\com\controlprestamos\features\payments\domain\collection\CollectionPdfGenerator.kt:11: data class CollectionPdfItem(
+.\app\src\main\java\com\controlprestamos\features\payments\domain\collection\CollectionPdfGenerator.kt:17: object CollectionPdfGenerator {
+.\app\src\main\java\com\controlprestamos\features\payments\domain\collection\CollectionPdfGenerator.kt:22: items: List<CollectionPdfItem>,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentCollectionPdfButton.kt:11: import com.controlprestamos.features.payments.domain.collection.CollectionPdfGenerator
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentCollectionPdfButton.kt:12: import com.controlprestamos.features.payments.domain.collection.CollectionPdfItem
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentCollectionPdfButton.kt:16: fun PaymentCollectionPdfButton() {
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentCollectionPdfButton.kt:37: CollectionPdfItem(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentCollectionPdfButton.kt:44: val file = CollectionPdfGenerator.generate(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:133: DailyCollectionAlert(state = state)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:145: installments = state.todayCollectionInstallments,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:204: PaymentCollectionPdfButton()
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:218: value = formatMoney(state.todayCollectionAmount),
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:219: subtitle = "${state.todayCollectionInstallments.size} cuotas",
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:221: isWarning = state.todayCollectionAmount > 0.0
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:255: private fun DailyCollectionAlert(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:641: val todayCollectionInstallments: List<Installment>,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:647: val todayCollectionAmount: Double,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:709: val todayCollectionInstallments = (overdueInstallments + todayDueInstallments)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:725: todayCollectionInstallments = todayCollectionInstallments,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:731: todayCollectionAmount = todayCollectionInstallments.sumOf { it.pendingAmount },
+
+TERM: ClientAvatar
+.\app\src\main\java\com\controlprestamos\core\ui\components\ClientAvatar.kt:19: fun ClientAvatar(
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientAdvancedComponents.kt:121: com.controlprestamos.core.ui.components.ClientAvatar(
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientsScreen.kt:31: import com.controlprestamos.core.ui.components.ClientAvatar
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientsScreen.kt:214: ClientAvatar(fullName = client.fullName)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:31: import com.controlprestamos.core.ui.components.ClientAvatar
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:371: ClientAvatar(fullName = item.clientName)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:45: import com.controlprestamos.core.ui.components.ClientAvatar
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:485: ClientAvatar(fullName = clientName)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:609: ClientAvatar(fullName = clientName)
+
+TERM: FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:10: object FinancialOperationRules {
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:30: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:512: val activePayments = payments.filter { FinancialOperationRules.shouldCountPaymentFinancially(it) }
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:513: val cancelledPayments = payments.filter { !FinancialOperationRules.shouldCountPaymentFinancially(it) }
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:10: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:385: drawLabelValue(canvas, "Estado", FinancialOperationRules.getClientStatusLabel(client), currentY)
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:549: "Préstamo ${loan.id.take(8)} · ${FinancialOperationRules.getLoanStatusLabel(loan)}",
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:34: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:178: if (FinancialOperationRules.canShowClientInOperationalLists(client)) {
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:191: text = FinancialOperationRules.getClientOperationMessage(client),
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:217: if (FinancialOperationRules.canShowClientInOperationalLists(client)) {
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:32: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:738: FinancialOperationRules.canShowClientInOperationalLists(client)
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:746: FinancialOperationRules.shouldCountLoanInOperationalReports(
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:758: FinancialOperationRules.shouldCountPaymentFinancially(payment)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\CreateLoanScreen.kt:36: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\CreateLoanScreen.kt:119: if (!FinancialOperationRules.canCreateLoanForClient(client)) {
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\CreateLoanScreen.kt:122: description = FinancialOperationRules.getClientOperationMessage(client),
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:38: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:152: if (FinancialOperationRules.isClosedLoan(loan) && loan.status == LoanStatus.CANCELLED) {
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt:32: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt:56: val isClientActive = FinancialOperationRules.canShowClientInOperationalLists(client)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt:273: !FinancialOperationRules.isClosedLoan(loan) &&
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:35: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:152: if (!FinancialOperationRules.canShowClientInOperationalLists(client)) {
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:155: description = FinancialOperationRules.getClientOperationMessage(client),
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:168: if (FinancialOperationRules.isClosedLoan(loan) && loan.status == LoanStatus.CANCELLED) {
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:171: description = FinancialOperationRules.getLoanOperationMessage(loan),
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:183: if (FinancialOperationRules.isClosedLoan(loan) && loan.status == LoanStatus.PAID) {
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:186: description = FinancialOperationRules.getLoanOperationMessage(loan),
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt:40: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt:94: val activePayments = payments.filter { FinancialOperationRules.shouldCountPaymentFinancially(it) }
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt:95: val cancelledPayments = payments.filter { !FinancialOperationRules.shouldCountPaymentFinancially(it) }
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt:463: val isCancelled = !FinancialOperationRules.shouldCountPaymentFinancially(payment)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt:626: if (FinancialOperationRules.shouldCountPaymentFinancially(payment)) {
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:12: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:667: FinancialOperationRules.shouldCountLoanInOperationalReports(
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsScreen.kt:688: FinancialOperationRules.shouldCountPaymentFinancially(payment)
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:34: import com.controlprestamos.core.rules.FinancialOperationRules
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:689: FinancialOperationRules.canShowClientInOperationalLists(client)
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:697: FinancialOperationRules.shouldCountLoanInOperationalReports(
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:709: FinancialOperationRules.shouldCountPaymentFinancially(payment)
+
+TERM: totalExpectedAmount
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:519: loan.totalExpectedAmount - activePaid,
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:551: if (activePaid > loan.totalExpectedAmount + MONEY_TOLERANCE) {
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:581: totalExpected = loan.totalExpectedAmount,
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:114: val totalExpected = activeLoans.sumOf { loan -> loan.totalExpectedAmount }
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:170: val pending = max(loan.totalExpectedAmount - paid, 0.0)
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:557: "Total: ${PdfDocumentUtils.formatMoney(loan.totalExpectedAmount, currencySymbol)}   Pagado: ${PdfDocumentUtils.formatMoney(paid, currencySymbol)}   Saldo: ${PdfDocumentUtils.formatMoney(pending, currencySymbol)}",
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:106: val totalExpected = loans.sumOf { it.totalExpectedAmount }
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:285: text = "Total: ${formatMoney(loan.totalExpectedAmount)}",
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:292: text = "Saldo: ${formatMoney(max(loan.totalExpectedAmount - LocalPaymentRepository.getTotalPaidByLoan(loan.id), 0.0))}",
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientsScreen.kt:200: max(loan.totalExpectedAmount - LocalPaymentRepository.getTotalPaidByLoan(loan.id), 0.0)
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:785: val totalExpected = loans.sumOf { it.totalExpectedAmount }
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:793: max(loan.totalExpectedAmount - paid, 0.0) <= 0.0
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:798: max(loan.totalExpectedAmount - paid, 0.0) > 0.0
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:806: max(loan.totalExpectedAmount - paid, 0.0) > 0.0
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:93: val installmentAmount = loan.totalExpectedAmount / installmentCount
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:376: loan.totalExpectedAmount - activePaidAmount,
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:84: totalExpectedAmount = totalExpected,
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:130: totalExpectedAmount = totalExpected,
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:273: put("totalExpectedAmount", totalExpectedAmount)
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:288: "totalExpectedAmount",
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:307: totalExpectedAmount = totalExpected,
+.\app\src\main\java\com\controlprestamos\features\loans\domain\model\Loan.kt:11: val totalExpectedAmount: Double,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:377: value = formatMoney(loan.totalExpectedAmount, currencySymbol)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:101: val remainingAmount = max(loan.totalExpectedAmount - totalPaid, 0.0)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:355: value = formatMoney(loan.totalExpectedAmount)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt:60: val totalExpected = activeLoans.sumOf { it.totalExpectedAmount }
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt:221: val remaining = max(loan.totalExpectedAmount - paid, 0.0)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt:242: text = formatMoney(loan.totalExpectedAmount),
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:501: val remainingAmount = max(totalExpectedAmount - totalPaid, 0.0)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:527: totalExpected = totalExpectedAmount,
+.\app\src\main\java\com\controlprestamos\features\payments\domain\receipt\PaymentReceiptFormatter.kt:49: Total a pagar: ${formatMoney(loan?.totalExpectedAmount ?: 0.0, currencySymbol)}
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:66: max(loan.totalExpectedAmount - totalPaid, 0.0)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\CreatePaymentScreen.kt:199: totalExpected = loan.totalExpectedAmount,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt:103: max(loan.totalExpectedAmount - activePaid, 0.0)
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt:110: loanTotal = loan.totalExpectedAmount,
+.\app\src\main\java\com\controlprestamos\features\payments\presentation\PaymentsByLoanScreen.kt:161: totalExpected = loan.totalExpectedAmount,
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:720: val totalExpected = loans.sumOf { it.totalExpectedAmount }
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:725: max(loan.totalExpectedAmount - LocalPaymentRepository.getTotalPaidByLoan(loan.id), 0.0) > 0.0
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:729: max(loan.totalExpectedAmount - LocalPaymentRepository.getTotalPaidByLoan(loan.id), 0.0) <= 0.0
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:736: max(loan.totalExpectedAmount - LocalPaymentRepository.getTotalPaidByLoan(loan.id), 0.0) > 0.0
+
+TERM: principalAmount
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:784: val totalLent = loans.sumOf { it.principalAmount }
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:67: val principal = input.principalAmount.replace(",", ".").toDoubleOrNull() ?: 0.0
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:79: principalAmount = principal,
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:116: val principal = input.principalAmount.replace(",", ".").toDoubleOrNull() ?: return null
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:125: principalAmount = principal,
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:268: put("principalAmount", principalAmount)
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:284: val principal = optDouble("principalAmount", 0.0)
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:300: principalAmount = principal,
+.\app\src\main\java\com\controlprestamos\features\loans\domain\model\CreateLoanInput.kt:5: val principalAmount: String,
+.\app\src\main\java\com\controlprestamos\features\loans\domain\model\Loan.kt:6: val principalAmount: Double,
+.\app\src\main\java\com\controlprestamos\features\loans\domain\model\UpdateLoanInput.kt:5: val principalAmount: String,
+.\app\src\main\java\com\controlprestamos\features\loans\domain\validation\LoanFormValidator.kt:13: val amount = input.principalAmount
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\CreateLoanScreen.kt:59: var principalAmount by rememberSaveable { mutableStateOf("") }
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\CreateLoanScreen.kt:71: val principal = principalAmount.replace(",", ".").toDoubleOrNull() ?: 0.0
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\CreateLoanScreen.kt:223: value = principalAmount,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\CreateLoanScreen.kt:225: principalAmount = it.replace(",", ".")
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\CreateLoanScreen.kt:350: principalAmount = principalAmount,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:62: var principalAmount by rememberSaveable(loanId) {
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:63: mutableStateOf(loan?.principalAmount?.toString().orEmpty())
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:98: val principal = principalAmount.replace(",", ".").toDoubleOrNull() ?: 0.0
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:205: principalAmount = principalAmount,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:207: principalAmount = it.replace(",", ".")
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:261: principalAmount = principalAmount,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:279: principalAmount = principalAmount,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:367: value = formatMoney(loan.principalAmount, currencySymbol)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:487: principalAmount: String,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:568: value = principalAmount,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:345: value = formatMoney(loan.principalAmount)
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansByClientScreen.kt:249: text = "Capital: ${formatMoney(loan.principalAmount)} · Interés: ${loan.interestRatePercent}%",
+.\app\src\main\java\com\controlprestamos\features\payments\domain\receipt\PaymentReceiptFormatter.kt:48: Monto prestado: ${formatMoney(loan?.principalAmount ?: 0.0, currencySymbol)}
+.\app\src\main\java\com\controlprestamos\features\reports\presentation\ReportsScreen.kt:719: val totalLent = loans.sumOf { it.principalAmount }
+
+TERM: PaymentStatus
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:8: import com.controlprestamos.features.payments.domain.model.PaymentStatus
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:64: return payment?.status == PaymentStatus.ACTIVE
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:82: return payment?.status == PaymentStatus.ACTIVE
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:107: fun getPaymentStatusLabel(payment: Payment?): String {
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:109: PaymentStatus.ACTIVE -> "Activo"
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:110: PaymentStatus.CANCELLED -> "Anulado"
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:134: PaymentStatus.ACTIVE -> "Pago activo: suma al total cobrado y reduce el saldo pendiente."
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:135: PaymentStatus.CANCELLED -> "Pago anulado: queda en historial, pero no suma financieramente ni reduce saldo."
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:9: import com.controlprestamos.features.payments.domain.model.PaymentStatus
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:41: .filter { it.status == PaymentStatus.ACTIVE }
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:51: .filter { it.loanId == loanId && it.status == PaymentStatus.ACTIVE }
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:72: .filter { it.loanId in clientLoanIds && it.status == PaymentStatus.ACTIVE }
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:89: .filter { it.loanId == loanId && it.status == PaymentStatus.ACTIVE }
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:105: status = PaymentStatus.ACTIVE,
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:127: if (current.status == PaymentStatus.CANCELLED) return false
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:130: status = PaymentStatus.CANCELLED,
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:195: status = statusFromName(optString("status", PaymentStatus.ACTIVE.name)),
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:210: private fun statusFromName(value: String): PaymentStatus {
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:212: PaymentStatus.valueOf(value)
+.\app\src\main\java\com\controlprestamos\features\payments\data\LocalPaymentRepository.kt:213: }.getOrDefault(PaymentStatus.ACTIVE)
+.\app\src\main\java\com\controlprestamos\features\payments\domain\model\Payment.kt:10: val status: PaymentStatus,
+.\app\src\main\java\com\controlprestamos\features\payments\domain\model\PaymentStatus.kt:3: enum class PaymentStatus(
+.\app\src\main\java\com\controlprestamos\features\payments\domain\receipt\PaymentReceiptFormatter.kt:6: import com.controlprestamos.features.payments.domain.model.PaymentStatus
+.\app\src\main\java\com\controlprestamos\features\payments\domain\receipt\PaymentReceiptFormatter.kt:22: PaymentStatus.ACTIVE -> "ACTIVO"
+.\app\src\main\java\com\controlprestamos\features\payments\domain\receipt\PaymentReceiptFormatter.kt:23: PaymentStatus.CANCELLED -> "ANULADO"
+.\app\src\main\java\com\controlprestamos\features\payments\domain\receipt\PaymentReceiptFormatter.kt:26: val cancellationBlock = if (payment.status == PaymentStatus.CANCELLED) {
+.\app\src\main\java\com\controlprestamos\features\payments\domain\receipt\PaymentReceiptPdfGenerator.kt:9: import com.controlprestamos.features.payments.domain.model.PaymentStatus
+.\app\src\main\java\com\controlprestamos\features\payments\domain\receipt\PaymentReceiptPdfGenerator.kt:32: val isCancelled = payment.status == PaymentStatus.CANCELLED
+
+TERM: LoanStatus
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:6: import com.controlprestamos.features.loans.domain.model.LoanStatus
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:21: if (loan?.status != LoanStatus.ACTIVE) return false
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:50: if (loan?.status != LoanStatus.ACTIVE) return false
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:58: if (loan.status == LoanStatus.CANCELLED) return false
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:76: if (loan?.status == LoanStatus.CANCELLED) return false
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:86: return loan?.status == LoanStatus.PAID ||
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:87: loan?.status == LoanStatus.CANCELLED
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:98: fun getLoanStatusLabel(loan: Loan?): String {
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:100: LoanStatus.ACTIVE -> "Activo"
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:101: LoanStatus.PAID -> "Pagado"
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:102: LoanStatus.CANCELLED -> "Cancelado"
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:125: LoanStatus.ACTIVE -> "Préstamo activo: admite pagos y seguimiento de cuotas."
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:126: LoanStatus.PAID -> "Préstamo pagado: ya fue saldado por completo y no admite nuevos pagos."
+.\app\src\main\java\com\controlprestamos\core\rules\FinancialOperationRules.kt:127: LoanStatus.CANCELLED -> "Préstamo cancelado: conserva historial, pero no admite nuevos pagos ni cuotas operativas."
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:28: import com.controlprestamos.features.loans.domain.model.LoanStatus
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:359: text = "Préstamo: ${row.loanId.take(8)} · Estado: ${row.loanStatus}",
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:535: if (installments.isEmpty() && loan.status == LoanStatus.ACTIVE) {
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:543: if (calculatedBalance <= MONEY_TOLERANCE && loan.status == LoanStatus.ACTIVE) {
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:547: if (calculatedBalance > MONEY_TOLERANCE && loan.status == LoanStatus.PAID) {
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:580: loanStatus = loan.status.label,
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:610: val loanStatus: String,
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:16: import com.controlprestamos.features.loans.domain.model.LoanStatus
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:81: .filter { loan -> loan.status != LoanStatus.CANCELLED }
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:85: LoanStatus.ACTIVE -> 0
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:86: LoanStatus.PAID -> 1
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:87: LoanStatus.CANCELLED -> 2
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:92: val activeLoans = collectibleLoans.filter { loan -> loan.status == LoanStatus.ACTIVE }
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:549: "Préstamo ${loan.id.take(8)} · ${FinancialOperationRules.getLoanStatusLabel(loan)}",
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:36: import com.controlprestamos.features.loans.domain.model.LoanStatus
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientDetailScreen.kt:104: .filter { it.status != LoanStatus.CANCELLED }
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientsScreen.kt:42: import com.controlprestamos.features.loans.domain.model.LoanStatus
+.\app\src\main\java\com\controlprestamos\features\clients\presentation\ClientsScreen.kt:198: val loans = LocalLoanRepository.getLoansByClient(client.id).filter { it.status != LoanStatus.CANCELLED }
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:380: LocalLoanRepository.updateLoanStatusByBalance(
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:8: import com.controlprestamos.features.loans.domain.model.LoanStatus
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:46: .filter { it.status == LoanStatus.ACTIVE }
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:52: .filter { it.status == LoanStatus.CANCELLED }
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:88: status = LoanStatus.ACTIVE,
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:106: if (current.status == LoanStatus.CANCELLED) return null
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:112: if (hasPaymentHistory || current.status == LoanStatus.PAID) {
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:151: if (current.status == LoanStatus.CANCELLED) return null
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:169: if (current.status == LoanStatus.CANCELLED) return null
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:171: val updatedLoan = current.copy(status = LoanStatus.PAID)
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:179: fun updateLoanStatusByBalance(
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:189: if (current.status == LoanStatus.CANCELLED) return null
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:192: LoanStatus.PAID
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:194: LoanStatus.ACTIVE
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:219: if (current.status == LoanStatus.CANCELLED) return false
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:222: status = LoanStatus.CANCELLED,
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:317: status = loanStatusFromName(
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:318: value = optString("status", LoanStatus.ACTIVE.name)
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:339: private fun loanStatusFromName(value: String): LoanStatus {
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:341: LoanStatus.valueOf(value)
+.\app\src\main\java\com\controlprestamos\features\loans\data\LocalLoanRepository.kt:342: }.getOrDefault(LoanStatus.ACTIVE)
+.\app\src\main\java\com\controlprestamos\features\loans\domain\model\Loan.kt:15: val status: LoanStatus = LoanStatus.ACTIVE,
+.\app\src\main\java\com\controlprestamos\features\loans\domain\model\LoanStatus.kt:3: enum class LoanStatus(
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:37: import com.controlprestamos.features.loans.domain.model.LoanStatus
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:115: loan.status == LoanStatus.PAID -> "Préstamo pagado"
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:152: if (FinancialOperationRules.isClosedLoan(loan) && loan.status == LoanStatus.CANCELLED) {
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\EditLoanScreen.kt:167: val isFinanciallyProtected = paymentHistory.isNotEmpty() || loan.status == LoanStatus.PAID
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:34: import com.controlprestamos.features.loans.domain.model.LoanStatus
+
+TERM: InstallmentStatus
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:25: import com.controlprestamos.features.installments.domain.model.InstallmentStatus
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:524: .filter { it.status != InstallmentStatus.CANCELLED }
+.\app\src\main\java\com\controlprestamos\features\audit\presentation\FinancialAuditScreen.kt:528: .filter { it.status != InstallmentStatus.CANCELLED }
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:14: import com.controlprestamos.features.installments.domain.model.InstallmentStatus
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:100: installment.status != InstallmentStatus.CANCELLED &&
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:101: installment.status != InstallmentStatus.PAID
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:109: .filter { installment -> installment.status == InstallmentStatus.OVERDUE }
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:112: .filter { installment -> installment.status != InstallmentStatus.OVERDUE }
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:174: installment.status != InstallmentStatus.CANCELLED &&
+.\app\src\main\java\com\controlprestamos\features\clients\domain\collection\ClientCollectionPdfGenerator.kt:175: installment.status != InstallmentStatus.PAID
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:34: import com.controlprestamos.features.installments.domain.model.InstallmentStatus
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:764: installment.status != InstallmentStatus.CANCELLED &&
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:769: it.status == InstallmentStatus.PENDING || it.status == InstallmentStatus.PARTIAL
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:773: it.status == InstallmentStatus.PAID
+.\app\src\main\java\com\controlprestamos\features\dashboard\presentation\DashboardScreen.kt:777: it.status == InstallmentStatus.OVERDUE
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:7: import com.controlprestamos.features.installments.domain.model.InstallmentStatus
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:66: InstallmentStatus.PENDING,
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:67: InstallmentStatus.PARTIAL,
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:68: InstallmentStatus.OVERDUE
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:112: status = InstallmentStatus.PENDING,
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:154: newPendingAmount <= 0.000001 -> InstallmentStatus.PAID
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:155: newPaidAmount > 0.0 -> InstallmentStatus.PARTIAL
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:163: paidAtMillis = if (newStatus == InstallmentStatus.PAID) {
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:210: InstallmentStatus.PENDING,
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:211: InstallmentStatus.PARTIAL
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:216: installment.copy(status = InstallmentStatus.OVERDUE)
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:318: private fun statusFromName(value: String): InstallmentStatus {
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:320: InstallmentStatus.valueOf(value)
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:321: }.getOrDefault(InstallmentStatus.PENDING)
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:340: status = InstallmentStatus.PENDING,
+.\app\src\main\java\com\controlprestamos\features\installments\data\LocalInstallmentRepository.kt:400: installment.copy(status = InstallmentStatus.CANCELLED)
+.\app\src\main\java\com\controlprestamos\features\installments\domain\model\Installment.kt:11: val status: InstallmentStatus,
+.\app\src\main\java\com\controlprestamos\features\installments\domain\model\InstallmentStatus.kt:3: enum class InstallmentStatus(
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:31: import com.controlprestamos.features.installments.domain.model.InstallmentStatus
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:103: it.status == InstallmentStatus.PENDING ||
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:104: it.status == InstallmentStatus.PARTIAL ||
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:105: it.status == InstallmentStatus.OVERDUE
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:108: it.status == InstallmentStatus.OVERDUE
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoanDetailScreen.kt:111: it.status == InstallmentStatus.PAID
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:40: import com.controlprestamos.features.installments.domain.model.InstallmentStatus
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:423: subtitle = item.installmentStatusText,
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:465: val installmentStatusText: String
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:499: val installments = LocalInstallmentRepository.getInstallmentsByLoan(id).filter { it.status != InstallmentStatus.CANCELLED }
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:503: it.status == InstallmentStatus.OVERDUE
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\LoansScreen.kt:506: it.status == InstallmentStatus.PAID
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:24: import com.controlprestamos.features.installments.domain.model.InstallmentStatus
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:35: val paidCount = installments.count { it.status == InstallmentStatus.PAID }
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:36: val overdueCount = installments.count { it.status == InstallmentStatus.OVERDUE }
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:38: it.status == InstallmentStatus.PENDING || it.status == InstallmentStatus.PARTIAL
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:136: private fun InstallmentStatus.toAppStatus(): AppStatus {
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:138: InstallmentStatus.PENDING -> AppStatus.PENDING
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:139: InstallmentStatus.PARTIAL -> AppStatus.PENDING
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:140: InstallmentStatus.PAID -> AppStatus.COMPLETED
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:141: InstallmentStatus.OVERDUE -> AppStatus.OVERDUE
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:142: InstallmentStatus.CANCELLED -> AppStatus.INACTIVE
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:146: private fun statusColor(status: InstallmentStatus) = when (status) {
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:147: InstallmentStatus.PENDING -> AppColors.Warning
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:148: InstallmentStatus.PARTIAL -> AppColors.Warning
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:149: InstallmentStatus.PAID -> AppColors.Success
+.\app\src\main\java\com\controlprestamos\features\loans\presentation\components\InstallmentTimelineCard.kt:150: InstallmentStatus.OVERDUE -> AppColors.Error
+
+=====================================================
+PROPUESTA PARA 30E
+=====================================================
+
+Dashboard premium debe calcular:
+- Capital colocado.
+- Utilidad pactada.
+- Cartera objetivo.
+- Recaudado.
+- Saldo por recaudar.
+- Vencido.
+- Cobrado hoy / semana / mes.
+- Salud de cartera.
+- Alertas de cobro.
+- Lista compacta de clientes activos.
+- Próximo cobro por cliente.
+- Colocación y cobranza últimos 7 días.
+
+Regla aplicada:
+- Si se crea nueva lógica o vista, se elimina lo anterior que sustituya.
+- Se auditan referencias antes de cerrar.
+
