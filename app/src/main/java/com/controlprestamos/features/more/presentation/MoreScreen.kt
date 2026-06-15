@@ -86,8 +86,6 @@ fun MoreScreen(
             ) {
                 Spacer(modifier = Modifier.height(AppSpacing.xs))
 
-                MoreHeaderCard()
-
                 PreferencesCard(
                     onOpenPreferences = onOpenPreferences,
                     onOpenBusinessSettings = onOpenBusinessSettings,
@@ -106,6 +104,8 @@ fun MoreScreen(
                 onOpenAbout = onOpenHelp,
                 onOpenSupport = onOpenHelp
             )
+
+            LogoutCard(onLogout = onLogout)
 
                 SecondaryButton(
                     text = "Volver",
@@ -129,41 +129,8 @@ fun MoreScreen(
     )
 }
 
-@Composable
-private fun MoreHeaderCard() {
-    ReferenceCard {
-        Text(
-            text = "Centro de control",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.Gray900
-        )
 
-        Text(
-            text = "Gestiona respaldo, seguridad, preferencias y ayuda desde un solo lugar.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = AppColors.Gray600
-        )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            InfoBox(
-                title = "App",
-                value = "Control Préstamos",
-                modifier = Modifier.weight(1f),
-                highlight = true
-            )
-
-            InfoBox(
-                title = "Versión",
-                value = "1.1.0-dev",
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
 
 @Composable
 private fun MainAccessCard(
@@ -231,8 +198,8 @@ private fun DataSecurityCard(
         )
 
         ActionRow(
-            title = "Respaldo local",
-            description = "Crear, compartir o restaurar una copia de seguridad.",
+            title = "Respaldo local o Google Drive",
+            description = "Crear una copia y guardarla en el teléfono, Google Drive u otra app compatible.",
             primaryText = "Abrir",
             onPrimaryClick = onOpenBackup
         )
@@ -380,6 +347,24 @@ private fun InfoBox(
     }
 }
 
+@Composable
+private fun LogoutCard(
+    onLogout: () -> Unit
+) {
+    ReferenceCard {
+        SectionTitle(
+            title = "Sesión",
+            subtitle = "Salida segura de la aplicación."
+        )
+
+        ActionRow(
+            title = "Cerrar sesión",
+            description = "Cerrar la sesión actual y volver a la pantalla de ingreso.",
+            primaryText = "Salir",
+            onPrimaryClick = onLogout
+        )
+    }
+}
 @Composable
 private fun ReferenceCard(
     content: @Composable ColumnScope.() -> Unit

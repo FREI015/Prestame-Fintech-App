@@ -1,4 +1,4 @@
-﻿package com.controlprestamos.core.navigation
+package com.controlprestamos.core.navigation
 
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.LifecycleEventObserver
