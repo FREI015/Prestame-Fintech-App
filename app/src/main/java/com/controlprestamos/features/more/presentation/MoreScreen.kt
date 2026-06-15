@@ -1,6 +1,7 @@
 package com.controlprestamos.features.more.presentation
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -24,8 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.controlprestamos.core.ui.components.AppCard
 import com.controlprestamos.core.ui.components.AppTopBar
-import com.controlprestamos.core.ui.components.PrimaryButton
-import com.controlprestamos.core.ui.components.SecondaryButton
 import com.controlprestamos.core.ui.theme.AppColors
 import com.controlprestamos.core.ui.theme.AppRadius
 import com.controlprestamos.core.ui.theme.AppSpacing
@@ -107,10 +106,6 @@ fun MoreScreen(
 
             LogoutCard(onLogout = onLogout)
 
-                SecondaryButton(
-                    text = "Volver",
-                    onClick = onBack
-                )
 
                 Spacer(modifier = Modifier.height(AppSpacing.md))
             }
@@ -130,8 +125,6 @@ fun MoreScreen(
 }
 
 
-
-
 @Composable
 private fun MainAccessCard(
     onOpenClients: () -> Unit,
@@ -146,7 +139,6 @@ private fun MainAccessCard(
         onOpenReports
     )
 }
-
 
 
 @Composable
@@ -165,7 +157,7 @@ private fun PreferencesCard(
     ReferenceCard {
         SectionTitle(
             title = "Preferencias",
-            subtitle = "Ajustes guardados de forma real."
+            subtitle = "Configuración esencial de la app."
         )
 
         ActionRow(
@@ -176,7 +168,6 @@ private fun PreferencesCard(
         )
     }
 }
-
 
 
 @Composable
@@ -194,7 +185,7 @@ private fun DataSecurityCard(
     ReferenceCard {
         SectionTitle(
             title = "Datos y seguridad",
-            subtitle = "Respaldo real de la información y protección de acceso."
+            subtitle = "Copia de seguridad y protección de entrada."
         )
 
         ActionRow(
@@ -214,7 +205,6 @@ private fun DataSecurityCard(
 }
 
 
-
 @Composable
 private fun SupportCard(
     onOpenAbout: () -> Unit,
@@ -223,7 +213,7 @@ private fun SupportCard(
     ReferenceCard {
         SectionTitle(
             title = "Acerca de y ayuda",
-            subtitle = "Información de la app y guía operativa en un solo lugar."
+            subtitle = "Información y soporte de uso."
         )
 
         ActionRow(
@@ -243,21 +233,18 @@ private fun SupportCard(
 }
 
 
-
-
-
-
 @Composable
 private fun SectionTitle(
     title: String,
     subtitle: String
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = AppColors.Gray900
         )
@@ -270,6 +257,7 @@ private fun SectionTitle(
     }
 }
 
+
 @Composable
 private fun ActionRow(
     title: String,
@@ -277,39 +265,37 @@ private fun ActionRow(
     primaryText: String,
     onPrimaryClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = AppColors.SurfaceMuted,
-        shape = RoundedCornerShape(AppRadius.card),
-        border = BorderStroke(
-            width = 1.dp,
-            color = AppColors.Border
-        )
+    keepMoreCallbacksCompatible(
+        {
+            primaryText.length
+        }
+    )
+
+    AppCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onPrimaryClick),
+        bordered = false
     ) {
         Column(
-            modifier = Modifier.padding(AppSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
                 color = AppColors.Gray900
             )
 
             Text(
                 text = description,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = AppColors.Gray600
-            )
-
-            PrimaryButton(
-                text = primaryText,
-                onClick = onPrimaryClick
             )
         }
     }
 }
+
 
 @Composable
 private fun InfoBox(
@@ -354,7 +340,7 @@ private fun LogoutCard(
     ReferenceCard {
         SectionTitle(
             title = "Sesión",
-            subtitle = "Salida segura de la aplicación."
+            subtitle = "Control de sesión."
         )
 
         ActionRow(
@@ -367,18 +353,17 @@ private fun LogoutCard(
 }
 @Composable
 private fun ReferenceCard(
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable () -> Unit
 ) {
-    AppCard(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        bordered = true
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            content = content
-        )
+        content()
     }
 }
+
+
 private fun keepMoreCallbacksCompatible(
     vararg callbacks: () -> Unit
 ) {
