@@ -1,4 +1,4 @@
-﻿package com.controlprestamos.features.dashboard.presentation
+package com.controlprestamos.features.dashboard.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -77,7 +77,7 @@ fun DashboardScreen(
                 showMenu = true,
                 showNotifications = false,
                 onMenu = onOpenMore,
-                onNotifications = {}
+                onNotifications = onOpenPayments
             )
         },
         bottomBar = {

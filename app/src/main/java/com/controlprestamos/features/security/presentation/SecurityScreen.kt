@@ -1,4 +1,4 @@
-﻿package com.controlprestamos.features.security.presentation
+package com.controlprestamos.features.security.presentation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -334,7 +334,7 @@ fun SecurityScreen(
                                 onClick = {
                                     LocalSecurityRepository.setBiometricEnabled(
                                         context = context,
-                                        enabled = false
+                                        enabled = true
                                     )
 
                                     refreshVersion++
