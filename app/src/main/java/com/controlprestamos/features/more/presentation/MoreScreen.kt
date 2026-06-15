@@ -1,4 +1,4 @@
-﻿package com.controlprestamos.features.more.presentation
+package com.controlprestamos.features.more.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -88,13 +88,6 @@ fun MoreScreen(
 
                 MoreHeaderCard()
 
-                MainAccessCard(
-                    onOpenClients = onOpenClients,
-                    onOpenLoans = onOpenLoans,
-                    onOpenPayments = onOpenPayments,
-                    onOpenReports = onOpenReports
-                )
-
                 PreferencesCard(
                     onOpenPreferences = onOpenPreferences,
                     onOpenBusinessSettings = onOpenBusinessSettings,
@@ -110,11 +103,9 @@ fun MoreScreen(
                 )
 
                 SupportCard(
-                    onOpenAbout = onOpenAbout,
-                    onOpenSupport = onOpenSupport
-                )
-
-                AppStatusCard()
+                onOpenAbout = onOpenHelp,
+                onOpenSupport = onOpenHelp
+            )
 
                 SecondaryButton(
                     text = "Volver",
@@ -149,7 +140,7 @@ private fun MoreHeaderCard() {
         )
 
         Text(
-            text = "Gestiona ajustes, herramientas, datos y accesos rápidos desde un solo lugar.",
+            text = "Gestiona respaldo, seguridad, preferencias y ayuda desde un solo lugar.",
             style = MaterialTheme.typography.bodyMedium,
             color = AppColors.Gray600
         )
@@ -181,41 +172,15 @@ private fun MainAccessCard(
     onOpenPayments: () -> Unit,
     onOpenReports: () -> Unit
 ) {
-    ReferenceCard {
-        SectionTitle(
-            title = "Accesos rápidos",
-            subtitle = "Atajos principales para moverte sin perder contexto."
-        )
-
-        ActionRow(
-            title = "Clientes",
-            description = "Abrir cartera de clientes activos e inactivos.",
-            primaryText = "Abrir",
-            onPrimaryClick = onOpenClients
-        )
-
-        ActionRow(
-            title = "Préstamos",
-            description = "Consultar préstamos, estados y detalle financiero.",
-            primaryText = "Abrir",
-            onPrimaryClick = onOpenLoans
-        )
-
-        ActionRow(
-            title = "Pagos",
-            description = "Ir al centro de cobros y revisar pagos registrados.",
-            primaryText = "Abrir",
-            onPrimaryClick = onOpenPayments
-        )
-
-        ActionRow(
-            title = "Reportes",
-            description = "Revisar rendimiento, rangos y resumen de cartera.",
-            primaryText = "Ver reportes",
-            onPrimaryClick = onOpenReports
-        )
-    }
+    keepMoreCallbacksCompatible(
+        onOpenClients,
+        onOpenLoans,
+        onOpenPayments,
+        onOpenReports
+    )
 }
+
+
 
 @Composable
 private fun PreferencesCard(
@@ -224,41 +189,28 @@ private fun PreferencesCard(
     onOpenCurrencySettings: () -> Unit,
     onOpenAppearanceSettings: () -> Unit
 ) {
+    keepMoreCallbacksCompatible(
+        onOpenBusinessSettings,
+        onOpenCurrencySettings,
+        onOpenAppearanceSettings
+    )
+
     ReferenceCard {
         SectionTitle(
             title = "Preferencias",
-            subtitle = "Configuración visual y datos básicos del negocio."
+            subtitle = "Ajustes guardados de forma real."
         )
 
         ActionRow(
             title = "Preferencias generales",
-            description = "Revisar configuración principal de la aplicación.",
+            description = "Editar datos básicos del negocio, moneda y formato.",
             primaryText = "Abrir",
             onPrimaryClick = onOpenPreferences
         )
-
-        ActionRow(
-            title = "Datos del negocio",
-            description = "Nombre visual, lema y datos de operación.",
-            primaryText = "Configurar",
-            onPrimaryClick = onOpenBusinessSettings
-        )
-
-        ActionRow(
-            title = "Moneda y formato",
-            description = "Símbolo, formato numérico y presentación de montos.",
-            primaryText = "Revisar",
-            onPrimaryClick = onOpenCurrencySettings
-        )
-
-        ActionRow(
-            title = "Apariencia",
-            description = "Colores, estilo visual y lectura profesional.",
-            primaryText = "Ver",
-            onPrimaryClick = onOpenAppearanceSettings
-        )
     }
 }
+
+
 
 @Composable
 private fun DataSecurityCard(
@@ -267,41 +219,34 @@ private fun DataSecurityCard(
     onOpenImport: () -> Unit,
     onOpenSecurity: () -> Unit
 ) {
+    keepMoreCallbacksCompatible(
+        onOpenExport,
+        onOpenImport
+    )
+
     ReferenceCard {
         SectionTitle(
             title = "Datos y seguridad",
-            subtitle = "Herramientas para proteger información y preparar respaldos."
+            subtitle = "Respaldo real de la información y protección de acceso."
         )
 
         ActionRow(
             title = "Respaldo local",
-            description = "Crear una copia de seguridad antes de cambios importantes.",
-            primaryText = "Respaldar",
+            description = "Crear, compartir o restaurar una copia de seguridad.",
+            primaryText = "Abrir",
             onPrimaryClick = onOpenBackup
         )
 
         ActionRow(
-            title = "Exportar información",
-            description = "Preparar datos para revisión, auditoría o reportes externos.",
-            primaryText = "Exportar",
-            onPrimaryClick = onOpenExport
-        )
-
-        ActionRow(
-            title = "Importar o restaurar",
-            description = "Restaurar datos desde una copia válida.",
-            primaryText = "Importar",
-            onPrimaryClick = onOpenImport
-        )
-
-        ActionRow(
             title = "Seguridad",
-            description = "Opciones de acceso, privacidad y protección de datos.",
-            primaryText = "Revisar",
+            description = "Configurar PIN, bloqueo de sesión y protección de entrada.",
+            primaryText = "Abrir",
             onPrimaryClick = onOpenSecurity
         )
     }
 }
+
+
 
 @Composable
 private fun SupportCard(
@@ -310,59 +255,30 @@ private fun SupportCard(
 ) {
     ReferenceCard {
         SectionTitle(
-            title = "Soporte",
-            subtitle = "Información de la aplicación y ayuda operativa."
+            title = "Acerca de y ayuda",
+            subtitle = "Información de la app y guía operativa en un solo lugar."
         )
 
         ActionRow(
-            title = "Acerca de",
-            description = "Versión instalada, firma local y datos de la app.",
+            title = "Acerca de Control Préstamos",
+            description = "Ver propósito, versión, alcance y notas de uso.",
             primaryText = "Ver",
             onPrimaryClick = onOpenAbout
         )
 
         ActionRow(
-            title = "Ayuda",
-            description = "Guía rápida para uso diario y revisión de flujos.",
+            title = "Ayuda operativa",
+            description = "Consultar guía rápida para clientes, préstamos, pagos y respaldos.",
             primaryText = "Abrir",
             onPrimaryClick = onOpenSupport
         )
     }
 }
 
-@Composable
-private fun AppStatusCard() {
-    ReferenceCard {
-        SectionTitle(
-            title = "Estado actual",
-            subtitle = "Resumen de la versión instalada en desarrollo."
-        )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            InfoBox(
-                title = "Modo",
-                value = "Local",
-                modifier = Modifier.weight(1f),
-                highlight = true
-            )
 
-            InfoBox(
-                title = "Compilación",
-                value = "V1.1",
-                modifier = Modifier.weight(1f)
-            )
-        }
 
-        Text(
-            text = "Los datos se mantienen en el dispositivo. Antes de cambios mayores, realiza una copia de seguridad.",
-            style = MaterialTheme.typography.bodySmall,
-            color = AppColors.Gray600
-        )
-    }
-}
+
 
 @Composable
 private fun SectionTitle(

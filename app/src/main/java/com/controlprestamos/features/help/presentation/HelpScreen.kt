@@ -1,8 +1,11 @@
-﻿package com.controlprestamos.features.help.presentation
+package com.controlprestamos.features.help.presentation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,15 +23,19 @@ import com.controlprestamos.core.ui.theme.AppSpacing
 
 @Composable
 fun HelpScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit = {},
+    onBack: () -> Unit = onNavigateBack
 ) {
     Scaffold(
         topBar = {
             AppTopBar(
-                title = "Ayuda",
-                subtitle = "Guía rápida de uso",
+                title = "Acerca de y ayuda",
+                subtitle = "Control Préstamos",
                 showBack = true,
-                onBack = onNavigateBack
+                showMore = false,
+                showMenu = false,
+                showNotifications = false,
+                onBack = onBack
             )
         },
         containerColor = AppColors.Background
@@ -46,60 +53,103 @@ fun HelpScreen(
                     .padding(AppSpacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
-                Text(
-                    text = "Cómo usar Control Préstamos",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppColors.Gray900
+                AboutCard()
+
+                HelpSection(
+                    title = "Flujo recomendado",
+                    body = "Primero registra clientes, luego crea préstamos, después registra pagos y revisa la cartera desde Inicio, Préstamos, Pagos y Reportes."
                 )
 
-                HelpCard(
-                    title = "1. Crea clientes",
-                    description = "Registra nombre, teléfono y datos básicos antes de crear préstamos."
+                HelpSection(
+                    title = "Clientes",
+                    body = "Usa Clientes para crear, editar, archivar o reactivar personas. Archivar no borra el historial financiero."
                 )
 
-                HelpCard(
-                    title = "2. Crea préstamos",
-                    description = "Elige pago único o por cuotas, monto, interés, fecha y frecuencia."
+                HelpSection(
+                    title = "Préstamos",
+                    body = "Usa Préstamos para revisar saldos, cuotas, estados y detalle financiero. Evita editar condiciones cuando ya existan pagos aplicados."
                 )
 
-                HelpCard(
-                    title = "3. Cobra desde Pagos",
-                    description = "Usa la pantalla Pagos para ver cuotas pendientes, vencidas y cobradas hoy."
+                HelpSection(
+                    title = "Pagos",
+                    body = "Usa Pagos como centro de cobros. Desde allí puedes ver cobros de hoy, cuotas pendientes, vencidas e historial."
                 )
 
-                HelpCard(
-                    title = "4. Usa WhatsApp",
-                    description = "El botón de WhatsApp prepara el mensaje, pero tú decides si enviarlo."
+                HelpSection(
+                    title = "Respaldos",
+                    body = "Usa Respaldo local para crear, compartir o restaurar una copia de seguridad. Esta es la ruta correcta para exportar información completa de la app."
                 )
 
-                HelpCard(
-                    title = "5. Revisa reportes",
-                    description = "Los reportes muestran el estado general de tu cartera."
+                HelpSection(
+                    title = "Seguridad",
+                    body = "Configura PIN y bloqueo de sesión para proteger el acceso. La seguridad no reemplaza los respaldos; ambas funciones deben usarse juntas."
                 )
+
+                Spacer(modifier = Modifier.height(AppSpacing.lg))
             }
         }
     }
 }
 
 @Composable
-private fun HelpCard(
+private fun AboutCard() {
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+        ) {
+            Text(
+                text = "Control Préstamos",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Gray900
+            )
+
+            Text(
+                text = "Gestiona. Controla. Haz crecer tu negocio.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.AccentTeal,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Text(
+                text = "Versión 1.1.0-dev",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.Gray700
+            )
+
+            Text(
+                text = "Aplicación local para control de clientes, préstamos, cuotas, pagos, reportes, respaldos y seguridad de acceso.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.Gray600
+            )
+        }
+    }
+}
+
+@Composable
+private fun HelpSection(
     title: String,
-    description: String
+    body: String
 ) {
-    AppCard(bordered = true) {
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
             )
 
             Text(
-                text = description,
+                text = body,
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppColors.Gray600
             )
