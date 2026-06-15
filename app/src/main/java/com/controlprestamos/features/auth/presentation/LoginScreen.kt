@@ -113,7 +113,7 @@ fun LoginScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.login_bg_profesional),
-                    contentDescription = "Fondo profesional login",
+                    contentDescription = "Control Préstamos",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     alpha = 0.40f
