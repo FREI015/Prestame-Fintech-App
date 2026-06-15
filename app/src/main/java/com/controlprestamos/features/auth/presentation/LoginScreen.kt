@@ -147,7 +147,7 @@ fun LoginScreen(
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.ic_auth_hero),
-                            contentDescription = "Control PrÃ©stamos",
+                            contentDescription = "Control Préstamos",
                             modifier = Modifier.size(118.dp)
                         )
                     }
@@ -155,7 +155,7 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(18.dp))
 
                     Text(
-                        text = "Control PrÃ©stamos",
+                        text = "Control Préstamos",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = AppColors.Gray900
@@ -244,7 +244,7 @@ fun LoginScreen(
 
                             Text(
                                 text = if (accessMode == LoginAccessMode.PIN && hasAccount) {
-                                    "Ingresa tu PIN de seguridad para volver a la aplicaciÃ³n."
+                                    "Ingresa tu PIN de seguridad para volver a la aplicación."
                                 } else {
                                     "Ingresa tus credenciales principales para acceder."
                                 },
@@ -259,7 +259,7 @@ fun LoginScreen(
                                         email = it.trim()
                                         formMessage = null
                                     },
-                                    label = "Correo electrÃ³nico",
+                                    label = "Correo electrónico",
                                     modifier = Modifier.fillMaxWidth(),
                                     keyboardType = KeyboardType.Email,
                                     enabled = !hasAccount || registeredEmail.isBlank()
@@ -271,14 +271,14 @@ fun LoginScreen(
                                         password = it
                                         formMessage = null
                                     },
-                                    label = "ContraseÃ±a",
+                                    label = "Contraseña",
                                     modifier = Modifier.fillMaxWidth(),
                                     keyboardType = KeyboardType.Password,
                                     visualTransformation = PasswordVisualTransformation()
                                 )
 
                                 AppPrimaryButton(
-                                    text = "Iniciar sesiÃ³n",
+                                    text = "Iniciar sesión",
                                     onClick = {
                                         val validation = AuthValidators.validateLogin(
                                             email = email,
@@ -410,14 +410,14 @@ private fun ProfesionalAccessCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "MÃ©todo de acceso",
+                        text = "Método de acceso",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = AppColors.Gray900
                     )
 
                     Text(
-                        text = "Elige cÃ³mo quieres desbloquear tu sesiÃ³n.",
+                        text = "Elige cómo quieres desbloquear tu sesión.",
                         style = MaterialTheme.typography.bodySmall,
                         color = AppColors.Gray600
                     )
@@ -436,7 +436,7 @@ private fun ProfesionalAccessCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 AccessMethodButton(
-                    icon = "Ã¢Å“â€°",
+                    icon = "PIN",
                     title = "Correo",
                     subtitle = "Clave principal",
                     selected = selectedMode == LoginAccessMode.PASSWORD,
@@ -447,9 +447,9 @@ private fun ProfesionalAccessCard(
 
                 if (hasPin) {
                     AccessMethodButton(
-                        icon = "Ã°Å¸â€Â",
+                        icon = "BIO",
                         title = "PIN",
-                        subtitle = "RÃ¡pido",
+                        subtitle = "Rápido",
                         selected = selectedMode == LoginAccessMode.PIN,
                         enabled = true,
                         modifier = Modifier.weight(1f),
@@ -459,9 +459,9 @@ private fun ProfesionalAccessCard(
 
                 if (biometricEnabled) {
                     AccessMethodButton(
-                        icon = "Ã°Å¸â€˜â€ ",
+                        icon = "OK",
                         title = "Huella",
-                        subtitle = "BiometrÃ­a",
+                        subtitle = "Biometría",
                         selected = false,
                         enabled = biometricAvailable,
                         modifier = Modifier.weight(1f),

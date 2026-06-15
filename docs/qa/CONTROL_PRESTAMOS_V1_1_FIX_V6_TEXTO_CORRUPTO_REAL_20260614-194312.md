@@ -1,4 +1,4 @@
-﻿# CONTROL PRESTAMOS - FIX FINAL V6 TEXTO CORRUPTO REAL
+# CONTROL PRESTAMOS - FIX FINAL V6 TEXTO CORRUPTO REAL
 
 Fecha:
 20260614-194312
@@ -39,31 +39,8 @@ Corregir texto corrupto real detectado en Kotlin.
 - App abierta.
 
 ## Hallazgos antes
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:452: a_acento: subtitle = "RÃ¡pido",
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:150: e_acento: contentDescription = "Control PrÃ©stamos",
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:158: e_acento: text = "Control PrÃ©stamos",
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:413: e_acento: text = "MÃ©todo de acceso",
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:464: i_acento: subtitle = "BiometrÃ­a",
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:247: o_acento: "Ingresa tu PIN de seguridad para volver a la aplicaciÃ³n."
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:262: o_acento: label = "Correo electrÃ³nico",
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:281: o_acento: text = "Iniciar sesiÃ³n",
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:420: o_acento: text = "Elige cÃ³mo quieres desbloquear tu sesiÃ³n.",
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:274: enie: label = "ContraseÃ±a",
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:450: emoji_roto: icon = "ðŸ”",
-app/src/main/java/com/controlprestamos/features/auth/presentation/LoginScreen.kt:462: emoji_roto: icon = "ðŸ‘†",
-app/src/main/java/com/controlprestamos/features/preferences/data/LocalPreferencesRepository.kt:29: a_acento: description = "MÃ¡s informaciÃ³n en pantalla."
-app/src/main/java/com/controlprestamos/features/preferences/data/LocalPreferencesRepository.kt:37: a_acento: description = "MÃ¡s aire visual entre tarjetas."
-app/src/main/java/com/controlprestamos/features/preferences/data/LocalPreferencesRepository.kt:41: a_acento: description = "Textos y espacios mÃ¡s amplios."
-app/src/main/java/com/controlprestamos/features/preferences/data/LocalPreferencesRepository.kt:46: e_acento: val businessName: String = "Control PrÃ©stamos",
-app/src/main/java/com/controlprestamos/features/preferences/data/LocalPreferencesRepository.kt:66: e_acento: businessName = sharedPreferences.getString(KEY_BUSINESS_NAME, "Control PrÃ©stamos") ?: "Control PrÃ©stamos",
-app/src/main/java/com/controlprestamos/features/preferences/data/LocalPreferencesRepository.kt:114: e_acento: businessName = businessName.trim().ifBlank { "Control PrÃ©stamos" },
-app/src/main/java/com/controlprestamos/features/preferences/data/LocalPreferencesRepository.kt:29: o_acento: description = "MÃ¡s informaciÃ³n en pantalla."
-app/src/main/java/com/controlprestamos/features/preferences/data/LocalPreferencesRepository.kt:36: o_acento: label = "CÃ³moda",
-app/src/main/java/com/controlprestamos/features/preferences/presentation/PreferencesScreen.kt:105: a_acento: text = "Estos datos se usarÃ¡n en reportes, recibos, WhatsApp y pantallas principales.",
-app/src/main/java/com/controlprestamos/features/preferences/presentation/PreferencesScreen.kt:129: i_acento: label = "SÃ­mbolo de moneda"
-app/src/main/java/com/controlprestamos/features/preferences/presentation/PreferencesScreen.kt:214: o_acento: text = "Ajusta la densidad visual segÃºn cÃ³mo quieras ver la informaciÃ³n.",
-app/src/main/java/com/controlprestamos/features/preferences/presentation/PreferencesScreen.kt:214: u_acento: text = "Ajusta la densidad visual segÃºn cÃ³mo quieras ver la informaciÃ³n.",
-
+La lista literal de hallazgos fue removida para no conservar texto mojibake dentro del repositorio.
+El detalle original queda respaldado localmente en archivos de respaldo.
 ## APK
 _secure_local\release\apk\ControlPrestamos_v1.1.0_dev_fix_v6_texto_real_signed_20260614-194312.apk
 
