@@ -436,7 +436,7 @@ private fun ProfesionalAccessCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 AccessMethodButton(
-                    icon = "PIN",
+                    icon = "\uD83D\uDD10",
                     title = "Correo",
                     subtitle = "Clave principal",
                     selected = selectedMode == LoginAccessMode.PASSWORD,
@@ -447,7 +447,7 @@ private fun ProfesionalAccessCard(
 
                 if (hasPin) {
                     AccessMethodButton(
-                        icon = "BIO",
+                        icon = "\uD83D\uDC46",
                         title = "PIN",
                         subtitle = "Rápido",
                         selected = selectedMode == LoginAccessMode.PIN,
