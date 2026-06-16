@@ -3,10 +3,8 @@
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,9 +32,9 @@ import com.controlprestamos.core.ui.theme.AppColors
 import com.controlprestamos.core.ui.theme.AppSpacing
 import com.controlprestamos.features.clients.data.LocalClientRepository
 import com.controlprestamos.features.clients.domain.model.ClientStatus
+import com.controlprestamos.core.rules.FinancialOperationRules
 import com.controlprestamos.features.installments.data.LocalInstallmentRepository
 import com.controlprestamos.features.installments.domain.model.Installment
-import com.controlprestamos.features.installments.domain.model.InstallmentStatus
 import com.controlprestamos.features.loans.data.LocalLoanRepository
 import com.controlprestamos.features.loans.domain.model.LoanStatus
 import com.controlprestamos.features.payments.data.LocalPaymentRepository
@@ -62,7 +60,6 @@ fun CreatePaymentScreen(
     val client = loan?.let { LocalClientRepository.getClientById(it.clientId) }
 
     val totalPaid = LocalPaymentRepository.getTotalPaidByLoan(loanId)
-
     val remainingAmount = if (loan == null) {
         0.0
     } else {
@@ -103,11 +100,8 @@ fun CreatePaymentScreen(
         topBar = {
             AppTopBar(
                 title = "Registrar pago",
-                subtitle = client?.fullName ?: "Centro de cobros",
+                subtitle = client?.fullName ?: "Préstamo no encontrado",
                 showBack = true,
-                showMore = false,
-                showMenu = false,
-                showNotifications = false,
                 onBack = onNavigateBack
             )
         },
@@ -126,8 +120,6 @@ fun CreatePaymentScreen(
                     .padding(AppSpacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
-                Spacer(modifier = Modifier.height(AppSpacing.xs))
-
                 if (loan == null) {
                     EmptyState(
                         title = "Préstamo no encontrado",
@@ -142,7 +134,6 @@ fun CreatePaymentScreen(
 
                     return@Column
                 }
-
                 if (client == null) {
                     EmptyState(
                         title = "Cliente no encontrado",
@@ -158,10 +149,10 @@ fun CreatePaymentScreen(
                     return@Column
                 }
 
-                if (client.status == ClientStatus.INACTIVE) {
+                if (!FinancialOperationRules.canShowClientInOperationalLists(client)) {
                     EmptyState(
                         title = "Cliente archivado",
-                        description = "No puedes registrar pagos operativos a un cliente archivado. Su historial se conserva para consulta.",
+                        description = FinancialOperationRules.getClientOperationMessage(client),
                         action = {
                             SecondaryButton(
                                 text = "Volver",
@@ -173,10 +164,11 @@ fun CreatePaymentScreen(
                     return@Column
                 }
 
-                if (loan.status == LoanStatus.CANCELLED) {
+
+                if (FinancialOperationRules.isClosedLoan(loan) && loan.status == LoanStatus.CANCELLED) {
                     EmptyState(
                         title = "Préstamo cancelado",
-                        description = "No se pueden registrar pagos en un préstamo cancelado.",
+                        description = FinancialOperationRules.getLoanOperationMessage(loan),
                         action = {
                             SecondaryButton(
                                 text = "Volver",
@@ -188,7 +180,29 @@ fun CreatePaymentScreen(
                     return@Column
                 }
 
-                if (loan.status == LoanStatus.PAID || remainingAmount <= 0.0) {
+                if (FinancialOperationRules.isClosedLoan(loan) && loan.status == LoanStatus.PAID) {
+                    EmptyState(
+                        title = "Préstamo pagado",
+                        description = FinancialOperationRules.getLoanOperationMessage(loan),
+                        action = {
+                            SecondaryButton(
+                                text = "Volver",
+                                onClick = onNavigateBack
+                            )
+                        }
+                    )
+
+                    return@Column
+                }
+                PaymentLoanSummaryCard(
+                    clientName = client.fullName,
+                    totalExpected = loan.totalExpectedAmount,
+                    totalPaid = totalPaid,
+                    remainingAmount = remainingAmount,
+                    currencySymbol = preferences.currencySymbol
+                )
+
+                if (remainingAmount <= 0.0) {
                     EmptyState(
                         title = "Préstamo saldado",
                         description = "Este préstamo no tiene saldo pendiente.",
@@ -203,20 +217,10 @@ fun CreatePaymentScreen(
                     return@Column
                 }
 
-                PaymentContextCard(
-                    clientName = client.fullName.ifBlank { "Cliente" },
-                    loanDescription = loan.description.ifBlank { "Préstamo #${loan.id.takeLast(4)}" },
-                    statusText = loan.status.name,
-                    currencySymbol = preferences.currencySymbol,
-                    totalExpected = loan.totalExpectedAmount,
-                    totalPaid = totalPaid,
-                    remainingAmount = remainingAmount
-                )
-
-                PaymentNextInstallmentCard(
+                NextInstallmentCard(
                     installment = nextInstallment,
                     currencySymbol = preferences.currencySymbol,
-                    onUseSuggestedAmount = {
+                    onPayInstallment = {
                         nextInstallment?.let { installment ->
                             amount = formatAmountForInput(installment.pendingAmount)
                             formError = null
@@ -224,23 +228,23 @@ fun CreatePaymentScreen(
                     }
                 )
 
-                PaymentSuggestedAmountCard(
+                QuickAmountCard(
                     remainingAmount = remainingAmount,
                     nextInstallment = nextInstallment,
                     currencySymbol = preferences.currencySymbol,
-                    onUseInstallment = {
+                    onPayInstallment = {
                         nextInstallment?.let { installment ->
                             amount = formatAmountForInput(installment.pendingAmount)
                             formError = null
                         }
                     },
-                    onUseFullBalance = {
+                    onPayFullBalance = {
                         amount = formatAmountForInput(remainingAmount)
                         formError = null
                     }
                 )
 
-                PaymentFormCard(
+                PaymentDataCard(
                     amount = amount,
                     onAmountChange = {
                         amount = it
@@ -262,13 +266,13 @@ fun CreatePaymentScreen(
                         formError = null
                     },
                     paymentDateMillis = paymentDateMillis,
-                    onPaymentDateChange = {
-                        paymentDateMillis = it
+                    onPaymentDateChange = { selected ->
+                        paymentDateMillis = selected
                         formError = null
                     }
                 )
 
-                PaymentConfirmationCard(
+                PaymentPreviewCard(
                     amount = amountPreview,
                     remainingAfterPayment = remainingAfterPayment,
                     method = method,
@@ -288,10 +292,10 @@ fun CreatePaymentScreen(
                 }
 
                 PrimaryButton(
-                    text = "Registrar pago",
+                    text = "Guardar pago",
                     onClick = {
                         val input = CreatePaymentInput(
-                            loanId = loan.id,
+                            loanId = loanId,
                             amount = amount,
                             method = method,
                             reference = reference,
@@ -323,22 +327,18 @@ fun CreatePaymentScreen(
                     text = "Cancelar",
                     onClick = onNavigateBack
                 )
-
-                Spacer(modifier = Modifier.height(AppSpacing.md))
             }
         }
     }
 }
 
 @Composable
-private fun PaymentContextCard(
+private fun PaymentLoanSummaryCard(
     clientName: String,
-    loanDescription: String,
-    statusText: String,
-    currencySymbol: String,
     totalExpected: Double,
     totalPaid: Double,
-    remainingAmount: Double
+    remainingAmount: Double,
+    currencySymbol: String
 ) {
     AppCard(
         modifier = Modifier.fillMaxWidth(),
@@ -348,7 +348,7 @@ private fun PaymentContextCard(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
             Text(
-                text = "Resumen del cobro",
+                text = "Resumen del préstamo",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
@@ -356,28 +356,15 @@ private fun PaymentContextCard(
 
             Text(
                 text = clientName,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = AppColors.Gray900
-            )
-
-            Text(
-                text = loanDescription,
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppColors.Gray600
-            )
-
-            Text(
-                text = "Estado: $statusText",
-                style = MaterialTheme.typography.labelMedium,
-                color = AppColors.Gray500
             )
 
             Text(
                 text = formatMoney(remainingAmount, currencySymbol),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = AppColors.Warning
+                color = if (remainingAmount > 0.0) AppColors.Warning else AppColors.Success
             )
 
             Text(
@@ -390,14 +377,14 @@ private fun PaymentContextCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
             ) {
-                PaymentInfoBox(
-                    title = "Total esperado",
+                CompactInfo(
+                    title = "Total",
                     value = formatMoney(totalExpected, currencySymbol),
                     modifier = Modifier.weight(1f)
                 )
 
-                PaymentInfoBox(
-                    title = "Cobrado",
+                CompactInfo(
+                    title = "Pagado",
                     value = formatMoney(totalPaid, currencySymbol),
                     modifier = Modifier.weight(1f),
                     success = totalPaid > 0.0
@@ -408,10 +395,10 @@ private fun PaymentContextCard(
 }
 
 @Composable
-private fun PaymentNextInstallmentCard(
+private fun NextInstallmentCard(
     installment: Installment?,
     currencySymbol: String,
-    onUseSuggestedAmount: () -> Unit
+    onPayInstallment: () -> Unit
 ) {
     AppCard(
         modifier = Modifier.fillMaxWidth(),
@@ -435,32 +422,28 @@ private fun PaymentNextInstallmentCard(
                 )
             } else {
                 Text(
-                    text = "Cuota ${installment.number}",
-                    style = MaterialTheme.typography.titleSmall,
+                    text = "Cuota #${installment.number}",
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = AppColors.Gray900
                 )
 
                 Text(
-                    text = "Vence: ${formatDate(installment.dueDateMillis)}",
+                    text = "Vence: ${formatDateOnly(installment.dueDateMillis)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AppColors.Gray600
                 )
 
                 Text(
                     text = "Pendiente: ${formatMoney(installment.pendingAmount, currencySymbol)}",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (installment.status == InstallmentStatus.OVERDUE) {
-                        AppColors.Error
-                    } else {
-                        AppColors.Warning
-                    }
+                    color = AppColors.Warning
                 )
 
                 SecondaryButton(
-                    text = "Usar monto de cuota",
-                    onClick = onUseSuggestedAmount
+                    text = "Pagar próxima cuota",
+                    onClick = onPayInstallment
                 )
             }
         }
@@ -468,12 +451,12 @@ private fun PaymentNextInstallmentCard(
 }
 
 @Composable
-private fun PaymentSuggestedAmountCard(
+private fun QuickAmountCard(
     remainingAmount: Double,
     nextInstallment: Installment?,
     currencySymbol: String,
-    onUseInstallment: () -> Unit,
-    onUseFullBalance: () -> Unit
+    onPayInstallment: () -> Unit,
+    onPayFullBalance: () -> Unit
 ) {
     AppCard(
         modifier = Modifier.fillMaxWidth(),
@@ -483,14 +466,14 @@ private fun PaymentSuggestedAmountCard(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
             Text(
-                text = "Monto sugerido",
+                text = "Monto rápido",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
             )
 
             Text(
-                text = "Puedes cobrar la próxima cuota o saldar el préstamo completo.",
+                text = "Usa una opción rápida o escribe el monto manualmente.",
                 style = MaterialTheme.typography.bodySmall,
                 color = AppColors.Gray600
             )
@@ -506,13 +489,13 @@ private fun PaymentSuggestedAmountCard(
                         "Cuota ${formatMoney(nextInstallment.pendingAmount, currencySymbol)}"
                     },
                     modifier = Modifier.weight(1f),
-                    onClick = onUseInstallment
+                    onClick = onPayInstallment
                 )
 
                 SecondaryButton(
                     text = "Saldo ${formatMoney(remainingAmount, currencySymbol)}",
                     modifier = Modifier.weight(1f),
-                    onClick = onUseFullBalance
+                    onClick = onPayFullBalance
                 )
             }
         }
@@ -520,7 +503,7 @@ private fun PaymentSuggestedAmountCard(
 }
 
 @Composable
-private fun PaymentFormCard(
+private fun PaymentDataCard(
     amount: String,
     onAmountChange: (String) -> Unit,
     method: String,
@@ -547,16 +530,16 @@ private fun PaymentFormCard(
             )
 
             AppDatePickerField(
-                label = "Fecha real de pago",
+                label = "Fecha del pago",
                 selectedDateMillis = paymentDateMillis,
                 onDateSelected = onPaymentDateChange,
-                helperText = "Esta fecha se usará en historial, cuotas, reportes y recibos."
+                helperText = "Esta fecha saldrá en recibo, historial, cuotas y reportes."
             )
 
             AppTextField(
                 value = amount,
                 onValueChange = onAmountChange,
-                label = "Monto a registrar",
+                label = "Monto pagado",
                 keyboardType = KeyboardType.Number
             )
 
@@ -575,14 +558,18 @@ private fun PaymentFormCard(
                     text = "Efectivo",
                     selected = method == "Efectivo",
                     modifier = Modifier.weight(1f),
-                    onClick = { onMethodChange("Efectivo") }
+                    onClick = {
+                        onMethodChange("Efectivo")
+                    }
                 )
 
                 PaymentMethodButton(
                     text = "Transferencia",
                     selected = method == "Transferencia",
                     modifier = Modifier.weight(1f),
-                    onClick = { onMethodChange("Transferencia") }
+                    onClick = {
+                        onMethodChange("Transferencia")
+                    }
                 )
             }
 
@@ -594,14 +581,18 @@ private fun PaymentFormCard(
                     text = "Pago móvil",
                     selected = method == "Pago móvil",
                     modifier = Modifier.weight(1f),
-                    onClick = { onMethodChange("Pago móvil") }
+                    onClick = {
+                        onMethodChange("Pago móvil")
+                    }
                 )
 
                 PaymentMethodButton(
                     text = "Otro",
                     selected = method == "Otro",
                     modifier = Modifier.weight(1f),
-                    onClick = { onMethodChange("Otro") }
+                    onClick = {
+                        onMethodChange("Otro")
+                    }
                 )
             }
 
@@ -620,15 +611,14 @@ private fun PaymentFormCard(
             AppTextField(
                 value = notes,
                 onValueChange = onNotesChange,
-                label = "Notas",
-                singleLine = false
+                label = "Nota"
             )
         }
     }
 }
 
 @Composable
-private fun PaymentConfirmationCard(
+private fun PaymentPreviewCard(
     amount: Double,
     remainingAfterPayment: Double,
     method: String,
@@ -640,69 +630,35 @@ private fun PaymentConfirmationCard(
         bordered = true
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
             Text(
-                text = "Vas a registrar",
+                text = "Vista previa",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
             )
 
-            Text(
-                text = formatMoney(amount, currencySymbol),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = if (amount > 0.0) AppColors.Success else AppColors.Gray500
+            PreviewRow(
+                label = "Monto",
+                value = formatMoney(amount, currencySymbol)
             )
 
-            Text(
-                text = "Método: ${method.ifBlank { "Pago" }}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            PreviewRow(
+                label = "Método",
+                value = method.ifBlank { "Sin método" }
             )
 
-            Text(
-                text = "Fecha: ${formatDate(paymentDateMillis)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            PreviewRow(
+                label = "Fecha",
+                value = formatDateOnly(paymentDateMillis)
             )
 
-            Text(
-                text = "Pendiente después del pago: ${formatMoney(remainingAfterPayment, currencySymbol)}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (remainingAfterPayment <= 0.0) AppColors.Success else AppColors.Warning
-            )
-        }
-    }
-}
-
-@Composable
-private fun PaymentInfoBox(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    success: Boolean = false
-) {
-    AppCard(
-        modifier = modifier,
-        bordered = true
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium,
-                color = AppColors.Gray500
-            )
-
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = if (success) AppColors.Success else AppColors.Gray900
+            PreviewRow(
+                label = "Saldo luego del pago",
+                value = formatMoney(remainingAfterPayment, currencySymbol),
+                warning = remainingAfterPayment > 0.0,
+                success = remainingAfterPayment <= 0.0
             )
         }
     }
@@ -730,6 +686,75 @@ private fun PaymentMethodButton(
     }
 }
 
+@Composable
+private fun CompactInfo(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    warning: Boolean = false,
+    success: Boolean = false
+) {
+    val valueColor = when {
+        success -> AppColors.Success
+        warning -> AppColors.Warning
+        else -> AppColors.Gray900
+    }
+
+    AppCard(
+        modifier = modifier,
+        bordered = true
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = valueColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun PreviewRow(
+    label: String,
+    value: String,
+    warning: Boolean = false,
+    success: Boolean = false
+) {
+    val valueColor = when {
+        success -> AppColors.Success
+        warning -> AppColors.Warning
+        else -> AppColors.Gray900
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppColors.Gray600
+        )
+
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = valueColor
+        )
+    }
+}
+
 private fun parseAmount(value: String): Double? {
     return value
         .replace(",", ".")
@@ -738,16 +763,22 @@ private fun parseAmount(value: String): Double? {
 }
 
 private fun formatAmountForInput(value: Double): String {
-    return DecimalFormat("#.##").format(value)
+    return DecimalFormat("0.##").format(value)
 }
 
 private fun formatMoney(
     value: Double,
     currencySymbol: String
 ): String {
-    return currencySymbol + DecimalFormat("#,##0").format(value)
+    return currencySymbol + DecimalFormat("#,##0.00").format(value)
 }
 
-private fun formatDate(millis: Long): String {
-    return SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(millis))
+private fun formatDateOnly(millis: Long): String {
+    return SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        .format(Date(millis))
 }
+
+
+
+
+

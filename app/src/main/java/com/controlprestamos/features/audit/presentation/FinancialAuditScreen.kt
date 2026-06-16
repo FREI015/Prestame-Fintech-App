@@ -1,24 +1,40 @@
 ﻿package com.controlprestamos.features.audit.presentation
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.controlprestamos.core.rules.FinancialOperationRules
 import com.controlprestamos.core.ui.components.AppCard
 import com.controlprestamos.core.ui.components.AppTopBar
 import com.controlprestamos.core.ui.components.EmptyState
 import com.controlprestamos.core.ui.theme.AppColors
+import com.controlprestamos.core.ui.theme.AppRadius
 import com.controlprestamos.core.ui.theme.AppSpacing
 import com.controlprestamos.features.clients.data.LocalClientRepository
 import com.controlprestamos.features.installments.data.LocalInstallmentRepository
@@ -27,7 +43,6 @@ import com.controlprestamos.features.loans.data.LocalLoanRepository
 import com.controlprestamos.features.loans.domain.model.Loan
 import com.controlprestamos.features.loans.domain.model.LoanStatus
 import com.controlprestamos.features.payments.data.LocalPaymentRepository
-import com.controlprestamos.core.rules.FinancialOperationRules
 import com.controlprestamos.features.preferences.data.LocalPreferencesRepository
 import java.text.DecimalFormat
 import kotlin.math.abs
@@ -39,31 +54,47 @@ private const val MONEY_TOLERANCE = 0.01
 fun FinancialAuditScreen(
     onNavigateBack: () -> Unit
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val preferences = LocalPreferencesRepository.getPreferences(context)
 
     val loans = LocalLoanRepository.getAllLoans()
     val allPaymentHistory = LocalPaymentRepository.getAllPaymentHistory()
 
-    val rows = loans.map { loan ->
-        buildLoanAuditRow(loan)
-    }
+    val rows = loans
+        .map { loan ->
+            buildLoanAuditRow(loan)
+        }
+        .sortedWith(
+            compareBy<LoanAuditRow> { row ->
+                when (row.status) {
+                    AuditStatus.ERROR -> 0
+                    AuditStatus.WARNING -> 1
+                    AuditStatus.OK -> 2
+                }
+            }.thenBy { row ->
+                row.clientName
+            }
+        )
 
     val orphanPayments = allPaymentHistory.filter { payment ->
-        loans.none { loan -> loan.id == payment.loanId }
+        loans.none { loan ->
+            loan.id == payment.loanId
+        }
     }
 
     val totals = buildAuditTotals(
         rows = rows,
         orphanPaymentCount = orphanPayments.size,
-        orphanPaymentAmount = orphanPayments.sumOf { it.amount }
+        orphanPaymentAmount = orphanPayments.sumOf { payment ->
+            payment.amount
+        }
     )
 
     Scaffold(
         topBar = {
             AppTopBar(
                 title = "Auditoría financiera",
-                subtitle = "Diagnóstico interno de saldos, pagos y cuotas",
+                subtitle = "Saldos, pagos y cuotas",
                 showBack = true,
                 onBack = onNavigateBack
             )
@@ -83,11 +114,11 @@ fun FinancialAuditScreen(
                     .padding(AppSpacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
-                Text(
-                    text = "Resumen general",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppColors.Gray900
+                Spacer(modifier = Modifier.height(AppSpacing.xs))
+
+                AuditHeroCard(
+                    totals = totals,
+                    currencySymbol = preferences.currencySymbol
                 )
 
                 AuditSummaryCard(
@@ -97,11 +128,15 @@ fun FinancialAuditScreen(
 
                 AuditRulesCard()
 
-                Text(
-                    text = "Préstamos revisados",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppColors.Gray900
+                SectionHeader(
+                    title = "Préstamos revisados",
+                    subtitle = "Los préstamos con errores aparecen primero.",
+                    count = rows.size,
+                    color = when {
+                        totals.errorCount > 0 -> AppColors.Error
+                        totals.warningCount > 0 -> AppColors.Warning
+                        else -> AppColors.Success
+                    }
                 )
 
                 if (rows.isEmpty()) {
@@ -121,38 +156,125 @@ fun FinancialAuditScreen(
                 if (orphanPayments.isNotEmpty()) {
                     OrphanPaymentsCard(
                         count = orphanPayments.size,
-                        amount = orphanPayments.sumOf { it.amount },
+                        amount = orphanPayments.sumOf { payment ->
+                            payment.amount
+                        },
                         currencySymbol = preferences.currencySymbol
                     )
                 }
 
-                AppCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    bordered = true
+                TechnicalReadingCard()
+
+                Spacer(modifier = Modifier.height(AppSpacing.md))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AuditHeroCard(
+    totals: AuditTotals,
+    currencySymbol: String
+) {
+    val statusColor = when {
+        totals.errorCount > 0 -> AppColors.Error
+        totals.warningCount > 0 -> AppColors.Warning
+        else -> AppColors.Success
+    }
+
+    val icon = when {
+        totals.errorCount > 0 -> "⚠️"
+        totals.warningCount > 0 -> "🟡"
+        else -> "✅"
+    }
+
+    val title = when {
+        totals.errorCount > 0 -> "Hay diferencias que revisar"
+        totals.warningCount > 0 -> "Hay alertas menores"
+        else -> "Todo luce coherente"
+    }
+
+    val subtitle = when {
+        totals.errorCount > 0 -> "Existen préstamos con diferencias financieras."
+        totals.warningCount > 0 -> "La cartera está usable, pero hay detalles por revisar."
+        else -> "Pagos, saldos y cuotas coinciden correctamente."
+    }
+
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(58.dp)
+                        .clip(CircleShape)
+                        .background(statusColor.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-                    ) {
-                        Text(
-                            text = "Lectura técnica",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = AppColors.Gray900
-                        )
-
-                        Text(
-                            text = "Esta pantalla no modifica datos. Solo compara lo que dicen los préstamos, pagos y cuotas para detectar diferencias antes de tocar backup, edición financiera o reportes avanzados.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AppColors.Gray600
-                        )
-
-                        Text(
-                            text = "Si aparece una diferencia, el siguiente paso no es borrar datos: es reconstruir cuotas desde pagos activos y revisar el préstamo afectado.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AppColors.Gray600
-                        )
-                    }
+                    Text(
+                        text = icon,
+                        style = MaterialTheme.typography.headlineSmall
+                    )
                 }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = statusColor
+                    )
+
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AppColors.Gray600
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            ) {
+                AuditMetricCard(
+                    title = "Préstamos",
+                    value = totals.loanCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+
+                AuditMetricCard(
+                    title = "Errores",
+                    value = totals.errorCount.toString(),
+                    modifier = Modifier.weight(1f),
+                    danger = totals.errorCount > 0
+                )
+
+                AuditMetricCard(
+                    title = "Alertas",
+                    value = totals.warningCount.toString(),
+                    modifier = Modifier.weight(1f),
+                    warning = totals.warningCount > 0
+                )
+            }
+
+            if (totals.orphanPaymentCount > 0) {
+                AuditNoticeBox(
+                    title = "Pagos sin préstamo",
+                    value = "${totals.orphanPaymentCount} pagos · ${formatMoney(totals.orphanPaymentAmount, currencySymbol)}",
+                    color = AppColors.Error
+                )
             }
         }
     }
@@ -170,44 +292,10 @@ private fun AuditSummaryCard(
         Column(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
-            Text(
-                text = when {
-                    totals.errorCount > 0 -> "Hay diferencias que revisar"
-                    totals.warningCount > 0 -> "Hay alertas menores"
-                    else -> "Todo luce coherente"
-                },
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = when {
-                    totals.errorCount > 0 -> AppColors.Error
-                    totals.warningCount > 0 -> AppColors.Warning
-                    else -> AppColors.Success
-                }
+            SectionTitle(
+                title = "Resumen general",
+                subtitle = "Comparación global entre préstamos, pagos activos y cuotas pendientes."
             )
-
-            Text(
-                text = "Esta revisión compara saldos calculados contra cuotas guardadas.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-            ) {
-                AuditMetricCard(
-                    title = "Préstamos",
-                    value = totals.loanCount.toString(),
-                    modifier = Modifier.weight(1f)
-                )
-
-                AuditMetricCard(
-                    title = "Con error",
-                    value = totals.errorCount.toString(),
-                    modifier = Modifier.weight(1f),
-                    danger = totals.errorCount > 0
-                )
-            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -234,24 +322,63 @@ private fun AuditSummaryCard(
                 AuditMetricCard(
                     title = "Saldo por pagos",
                     value = formatMoney(totals.totalCalculatedBalance, currencySymbol),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    warning = totals.totalCalculatedBalance > 0.0
                 )
 
                 AuditMetricCard(
                     title = "Pendiente cuotas",
                     value = formatMoney(totals.totalInstallmentPending, currencySymbol),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    warning = totals.totalInstallmentPending > 0.0
                 )
             }
 
-            if (totals.orphanPaymentCount > 0) {
-                Text(
-                    text = "Pagos sin préstamo detectados: ${totals.orphanPaymentCount} por ${formatMoney(totals.orphanPaymentAmount, currencySymbol)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppColors.Error
-                )
-            }
+            AuditDifferenceBox(
+                calculatedBalance = totals.totalCalculatedBalance,
+                installmentPending = totals.totalInstallmentPending,
+                currencySymbol = currencySymbol
+            )
+        }
+    }
+}
+
+@Composable
+private fun AuditDifferenceBox(
+    calculatedBalance: Double,
+    installmentPending: Double,
+    currencySymbol: String
+) {
+    val difference = calculatedBalance - installmentPending
+    val hasDifference = abs(difference) > MONEY_TOLERANCE
+    val color = if (hasDifference) AppColors.Error else AppColors.Success
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = color.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(AppRadius.card),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.25f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(AppSpacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Diferencia global",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = formatMoney(difference, currencySymbol),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
         }
     }
 }
@@ -265,12 +392,32 @@ private fun AuditMetricCard(
     danger: Boolean = false,
     warning: Boolean = false
 ) {
-    AppCard(
-        modifier = modifier,
-        bordered = true
+    val color = when {
+        danger -> AppColors.Error
+        warning -> AppColors.Warning
+        success -> AppColors.Success
+        else -> AppColors.Gray900
+    }
+
+    val backgroundColor = when {
+        danger -> AppColors.Error.copy(alpha = 0.08f)
+        warning -> AppColors.Warning.copy(alpha = 0.08f)
+        success -> AppColors.Success.copy(alpha = 0.08f)
+        else -> AppColors.SurfaceMuted
+    }
+
+    Surface(
+        modifier = modifier.heightIn(min = 72.dp),
+        color = backgroundColor,
+        shape = RoundedCornerShape(AppRadius.card),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.18f)
+        )
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
                 text = title,
@@ -281,13 +428,8 @@ private fun AuditMetricCard(
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = when {
-                    danger -> AppColors.Error
-                    warning -> AppColors.Warning
-                    success -> AppColors.Success
-                    else -> AppColors.Gray900
-                }
+                fontWeight = FontWeight.Bold,
+                color = color
             )
         }
     }
@@ -300,39 +442,67 @@ private fun AuditRulesCard() {
         bordered = true
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
-            Text(
-                text = "Reglas que se están verificando",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
+            SectionTitle(
+                title = "Reglas verificadas",
+                subtitle = "La auditoría no modifica datos. Solo compara información guardada."
             )
 
-            Text(
-                text = "1. Pagos activos suman. Pagos anulados no suman.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            AuditRuleItem(
+                number = "1",
+                text = "Pagos activos suman. Pagos anulados no suman."
             )
 
-            Text(
-                text = "2. Saldo por pagos debe coincidir con pendiente de cuotas.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            AuditRuleItem(
+                number = "2",
+                text = "Saldo por pagos debe coincidir con pendiente de cuotas."
             )
 
-            Text(
-                text = "3. Préstamo con saldo cero debe estar Pagado, salvo que esté Cancelado.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            AuditRuleItem(
+                number = "3",
+                text = "Préstamo con saldo cero debe estar Pagado, salvo que esté Cancelado."
             )
 
-            Text(
-                text = "4. Préstamo activo debe tener cuotas generadas.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            AuditRuleItem(
+                number = "4",
+                text = "Préstamo activo debe tener cuotas generadas."
             )
         }
+    }
+}
+
+@Composable
+private fun AuditRuleItem(
+    number: String,
+    text: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(AppColors.AccentTeal.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = number,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.AccentTeal
+            )
+        }
+
+        Text(
+            modifier = Modifier.weight(1f),
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = AppColors.Gray600
+        )
     }
 }
 
@@ -341,6 +511,12 @@ private fun LoanAuditCard(
     row: LoanAuditRow,
     currencySymbol: String
 ) {
+    val statusColor = when (row.status) {
+        AuditStatus.OK -> AppColors.Success
+        AuditStatus.WARNING -> AppColors.Warning
+        AuditStatus.ERROR -> AppColors.Error
+    }
+
     AppCard(
         modifier = Modifier.fillMaxWidth(),
         bordered = true
@@ -348,28 +524,58 @@ private fun LoanAuditCard(
         Column(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
-            Text(
-                text = row.clientName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(statusColor.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = when (row.status) {
+                            AuditStatus.OK -> "✓"
+                            AuditStatus.WARNING -> "!"
+                            AuditStatus.ERROR -> "!"
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = statusColor
+                    )
+                }
 
-            Text(
-                text = "Préstamo: ${row.loanId.take(8)} · Estado: ${row.loanStatus}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
-            )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = row.clientName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.Gray900
+                    )
+
+                    Text(
+                        text = "Préstamo: ${row.loanId.take(8)} · Estado: ${row.loanStatus}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = AppColors.Gray500
+                    )
+                }
+
+                AuditStatusPill(
+                    status = row.status
+                )
+            }
 
             Text(
                 text = row.statusLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = when (row.status) {
-                    AuditStatus.OK -> AppColors.Success
-                    AuditStatus.WARNING -> AppColors.Warning
-                    AuditStatus.ERROR -> AppColors.Error
-                }
+                color = statusColor
             )
 
             Row(
@@ -379,7 +585,8 @@ private fun LoanAuditCard(
                 AuditMetricCard(
                     title = "Saldo pagos",
                     value = formatMoney(row.calculatedBalance, currencySymbol),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    warning = row.calculatedBalance > 0.0
                 )
 
                 AuditMetricCard(
@@ -429,23 +636,67 @@ private fun LoanAuditCard(
             }
 
             if (row.messages.isNotEmpty()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = statusColor.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(AppRadius.card),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = statusColor.copy(alpha = 0.22f)
+                    )
                 ) {
-                    row.messages.forEach { message ->
-                        Text(
-                            text = "• $message",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = when (row.status) {
-                                AuditStatus.ERROR -> AppColors.Error
-                                AuditStatus.WARNING -> AppColors.Warning
-                                AuditStatus.OK -> AppColors.Gray600
-                            }
-                        )
+                    Column(
+                        modifier = Modifier.padding(AppSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+                    ) {
+                        row.messages.forEach { message ->
+                            Text(
+                                text = "• $message",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = statusColor
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AuditStatusPill(
+    status: AuditStatus
+) {
+    val color = when (status) {
+        AuditStatus.OK -> AppColors.Success
+        AuditStatus.WARNING -> AppColors.Warning
+        AuditStatus.ERROR -> AppColors.Error
+    }
+
+    val text = when (status) {
+        AuditStatus.OK -> "OK"
+        AuditStatus.WARNING -> "Alerta"
+        AuditStatus.ERROR -> "Error"
+    }
+
+    Surface(
+        color = color.copy(alpha = 0.10f),
+        shape = RoundedCornerShape(AppRadius.pill),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.28f)
+        )
+    ) {
+        Text(
+            modifier = Modifier.padding(
+                horizontal = AppSpacing.sm,
+                vertical = AppSpacing.xs
+            ),
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
     }
 }
 
@@ -462,25 +713,157 @@ private fun OrphanPaymentsCard(
         Column(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
-            Text(
-                text = "Pagos sin préstamo",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+            SectionTitle(
+                title = "Pagos sin préstamo",
+                subtitle = "Se detectaron movimientos asociados a préstamos inexistentes."
+            )
+
+            AuditNoticeBox(
+                title = "$count pagos detectados",
+                value = formatMoney(amount, currencySymbol),
                 color = AppColors.Error
             )
 
             Text(
-                text = "Se detectaron $count pagos asociados a préstamos inexistentes por ${formatMoney(amount, currencySymbol)}.",
+                text = "Esto no debe corregirse borrando a mano. Primero revisa si viene de una restauración, datos antiguos o una migración incompleta.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.Gray600
+            )
+        }
+    }
+}
+
+@Composable
+private fun AuditNoticeBox(
+    title: String,
+    value: String,
+    color: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = color.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(AppRadius.card),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.25f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+private fun TechnicalReadingCard() {
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            SectionTitle(
+                title = "Lectura técnica",
+                subtitle = "Qué hacer si aparece una diferencia."
+            )
+
+            Text(
+                text = "Esta pantalla no modifica datos. Solo compara lo que dicen los préstamos, pagos y cuotas para detectar diferencias antes de tocar backup, edición financiera o reportes avanzados.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppColors.Gray600
             )
 
             Text(
-                text = "Esto no debe corregirse borrando a mano. Primero hay que revisar si viene de una restauración o de datos antiguos.",
+                text = "Si aparece una diferencia, no borres datos manualmente. Primero reconstruye cuotas desde pagos activos y revisa el préstamo afectado.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppColors.Gray600
             )
         }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    subtitle: String,
+    count: Int,
+    color: Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.Gray900
+            )
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = AppColors.Gray600
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(color.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(
+    title: String,
+    subtitle: String
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = AppColors.Gray600
+        )
     }
 }
 
@@ -491,12 +874,24 @@ private fun buildAuditTotals(
 ): AuditTotals {
     return AuditTotals(
         loanCount = rows.size,
-        errorCount = rows.count { it.status == AuditStatus.ERROR },
-        warningCount = rows.count { it.status == AuditStatus.WARNING },
-        totalExpected = rows.sumOf { it.totalExpected },
-        totalActivePaid = rows.sumOf { it.activePaid },
-        totalCalculatedBalance = rows.sumOf { it.calculatedBalance },
-        totalInstallmentPending = rows.sumOf { it.installmentPending },
+        errorCount = rows.count { row ->
+            row.status == AuditStatus.ERROR
+        },
+        warningCount = rows.count { row ->
+            row.status == AuditStatus.WARNING
+        },
+        totalExpected = rows.sumOf { row ->
+            row.totalExpected
+        },
+        totalActivePaid = rows.sumOf { row ->
+            row.activePaid
+        },
+        totalCalculatedBalance = rows.sumOf { row ->
+            row.calculatedBalance
+        },
+        totalInstallmentPending = rows.sumOf { row ->
+            row.installmentPending
+        },
         orphanPaymentCount = orphanPaymentCount,
         orphanPaymentAmount = orphanPaymentAmount
     )
@@ -509,24 +904,38 @@ private fun buildLoanAuditRow(
     val payments = LocalPaymentRepository.getPaymentHistoryByLoan(loan.id)
     val installments = LocalInstallmentRepository.getInstallmentsByLoan(loan.id)
 
-    val activePayments = payments.filter { FinancialOperationRules.shouldCountPaymentFinancially(it) }
-    val cancelledPayments = payments.filter { !FinancialOperationRules.shouldCountPaymentFinancially(it) }
+    val activePayments = payments.filter { payment ->
+        FinancialOperationRules.shouldCountPaymentFinancially(payment)
+    }
 
-    val activePaid = activePayments.sumOf { it.amount }
-    val cancelledAmount = cancelledPayments.sumOf { it.amount }
+    val cancelledPayments = payments.filter { payment ->
+        !FinancialOperationRules.shouldCountPaymentFinancially(payment)
+    }
+
+    val activePaid = activePayments.sumOf { payment ->
+        payment.amount
+    }
+
+    val cancelledAmount = cancelledPayments.sumOf { payment ->
+        payment.amount
+    }
 
     val calculatedBalance = max(
         loan.totalExpectedAmount - activePaid,
         0.0
     )
 
-    val installmentPending = installments
-        .filter { it.status != InstallmentStatus.CANCELLED }
-        .sumOf { it.pendingAmount }
+    val activeInstallments = installments.filter { installment ->
+        installment.status != InstallmentStatus.CANCELLED
+    }
 
-    val installmentPaid = installments
-        .filter { it.status != InstallmentStatus.CANCELLED }
-        .sumOf { it.paidAmount }
+    val installmentPending = activeInstallments.sumOf { installment ->
+        installment.pendingAmount
+    }
+
+    val installmentPaid = activeInstallments.sumOf { installment ->
+        installment.paidAmount
+    }
 
     val balanceDifference = calculatedBalance - installmentPending
 
@@ -557,10 +966,10 @@ private fun buildLoanAuditRow(
     }
 
     val status = when {
-        messages.any {
-            it.contains("no coincide", ignoreCase = true) ||
-                it.contains("superan", ignoreCase = true) ||
-                it.contains("todavía tiene saldo", ignoreCase = true)
+        messages.any { message ->
+            message.contains("no coincide", ignoreCase = true) ||
+                message.contains("superan", ignoreCase = true) ||
+                message.contains("todavía tiene saldo", ignoreCase = true)
         } -> AuditStatus.ERROR
 
         messages.isNotEmpty() -> AuditStatus.WARNING
@@ -633,5 +1042,3 @@ private fun formatMoney(
 ): String {
     return currencySymbol + DecimalFormat("#,##0.00").format(value)
 }
-
-

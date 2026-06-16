@@ -1,44 +1,46 @@
 package com.controlprestamos.core.navigation
 
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.Lifecycle
-import androidx.compose.runtime.DisposableEffect
-import com.controlprestamos.features.security.data.LocalSecurityRepository
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavType
-import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.controlprestamos.features.audit.presentation.FinancialAuditScreen
 import com.controlprestamos.features.auth.data.LocalAuthRepository
 import com.controlprestamos.features.auth.presentation.LoginScreen
 import com.controlprestamos.features.auth.presentation.RegisterScreen
+import com.controlprestamos.features.backup.presentation.BackupScreen
 import com.controlprestamos.features.clients.presentation.ClientDetailScreen
 import com.controlprestamos.features.clients.presentation.ClientsScreen
 import com.controlprestamos.features.clients.presentation.CreateClientScreen
 import com.controlprestamos.features.clients.presentation.EditClientScreen
 import com.controlprestamos.features.dashboard.presentation.DashboardScreen
+import com.controlprestamos.features.help.presentation.HelpScreen
 import com.controlprestamos.features.loans.presentation.CreateLoanScreen
 import com.controlprestamos.features.loans.presentation.EditLoanScreen
 import com.controlprestamos.features.loans.presentation.LoanDetailScreen
 import com.controlprestamos.features.loans.presentation.LoansByClientScreen
 import com.controlprestamos.features.loans.presentation.LoansScreen
+import com.controlprestamos.features.more.presentation.MoreScreen
 import com.controlprestamos.features.payments.presentation.CreatePaymentScreen
 import com.controlprestamos.features.payments.presentation.PaymentsByLoanScreen
 import com.controlprestamos.features.payments.presentation.PaymentsScreen
-import com.controlprestamos.features.more.presentation.MoreScreen
-import com.controlprestamos.features.help.presentation.HelpScreen
-import com.controlprestamos.features.security.presentation.SecurityScreen
-import com.controlprestamos.features.backup.presentation.BackupScreen
-import com.controlprestamos.features.reports.presentation.ReportsScreen
 import com.controlprestamos.features.preferences.presentation.PreferencesScreen
-import com.controlprestamos.features.audit.presentation.FinancialAuditScreen
+import com.controlprestamos.features.reports.presentation.ReportsScreen
+import com.controlprestamos.features.security.data.LocalSecurityRepository
+import com.controlprestamos.features.security.presentation.SecurityScreen
 
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
+    val appContext = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     fun navigateToLogin() {
         navController.navigate(AppRoute.Login.route) {
@@ -50,52 +52,47 @@ fun AppNavGraph() {
     fun navigateToDashboard() {
         navController.navigate(AppRoute.Dashboard.route) {
             launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    fun navigateToMainRoute(route: String) {
+        navController.navigate(route) {
+            launchSingleTop = true
+            restoreState = true
+            popUpTo(AppRoute.Dashboard.route) {
+                saveState = true
+            }
         }
     }
 
     fun navigateToClients() {
-        navController.navigate(AppRoute.Clients.route) {
-            launchSingleTop = true
-        }
+        navigateToMainRoute(AppRoute.Clients.route)
+    }
+
+    fun navigateToLoans() {
+        navigateToMainRoute(AppRoute.Loans.route)
     }
 
     fun navigateToPayments() {
-        navController.navigate(AppRoute.Payments.route) {
-            launchSingleTop = true
-        }
+        navigateToMainRoute(AppRoute.Payments.route)
     }
-    fun navigateToLoans() {
-        navController.navigate(AppRoute.Loans.route) {
-            launchSingleTop = true
-            restoreState = true
-            popUpTo(AppRoute.Dashboard.route) {
-                saveState = true
-            }
-        }
-    }
-    fun navigateToMore() {
-        navController.navigate(AppRoute.More.route) {
-            launchSingleTop = true
-            restoreState = true
-            popUpTo(AppRoute.Dashboard.route) {
-                saveState = true
-            }
-        }
-    }
-    val appLockContext = LocalContext.current
 
-    val appLockStartDestination = when {
-        LocalSecurityRepository.shouldRequirePinOnLaunch(appLockContext) -> AppRoute.Login.route
-        LocalAuthRepository.isSessionActive(appLockContext) -> AppRoute.Dashboard.route
+    fun navigateToMore() {
+        navigateToMainRoute(AppRoute.More.route)
+    }
+
+    val startDestination = when {
+        LocalSecurityRepository.shouldRequirePinOnLaunch(appContext) -> AppRoute.Login.route
+        LocalAuthRepository.isSessionActive(appContext) -> AppRoute.Dashboard.route
         else -> AppRoute.Login.route
     }
-    val autoLockLifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(autoLockLifecycleOwner, navController, appLockContext) {
+    DisposableEffect(lifecycleOwner, navController, appContext) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> {
-                    LocalSecurityRepository.markBackgrounded(appLockContext)
+                    LocalSecurityRepository.markBackgrounded(appContext)
                 }
 
                 Lifecycle.Event.ON_START -> {
@@ -104,16 +101,14 @@ fun AppNavGraph() {
                         ?.route
 
                     val shouldLock = LocalSecurityRepository
-                        .shouldRequirePinAfterBackground(appLockContext)
+                        .shouldRequirePinAfterBackground(appContext)
 
                     if (
                         shouldLock &&
-                        currentRoute != AppRoute.Login.route
+                        currentRoute != AppRoute.Login.route &&
+                        currentRoute != AppRoute.Register.route
                     ) {
-                        navController.navigate(AppRoute.Login.route) {
-                            popUpTo(0)
-                            launchSingleTop = true
-                        }
+                        navigateToLogin()
                     }
                 }
 
@@ -121,21 +116,18 @@ fun AppNavGraph() {
             }
         }
 
-        autoLockLifecycleOwner.lifecycle.addObserver(observer)
+        lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose {
-            autoLockLifecycleOwner.lifecycle.removeObserver(observer)
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-
-
-
     NavHost(
         navController = navController,
-        startDestination = appLockStartDestination
+        startDestination = startDestination
     ) {
-        composable(AppRoute.AppLock.route) {
+        composable(AppRoute.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
                     navController.navigate(AppRoute.Dashboard.route) {
@@ -148,7 +140,8 @@ fun AppNavGraph() {
                 }
             )
         }
-        composable(AppRoute.Login.route) {
+
+        composable(AppRoute.AppLock.route) {
             LoginScreen(
                 onLoginSuccess = {
                     navController.navigate(AppRoute.Dashboard.route) {
@@ -177,23 +170,23 @@ fun AppNavGraph() {
         }
 
         composable(AppRoute.Dashboard.route) {
-                DashboardScreen(
-                    onOpenDashboard = {
-                        navController.navigate(AppRoute.Dashboard.route)
-                    },
-                    onOpenClients = {
-                        navController.navigate(AppRoute.Clients.route)
-                    },
-                    onOpenLoans = {
-                        navController.navigate(AppRoute.Loans.route)
-                    },
-                    onOpenPayments = {
-                        navController.navigate(AppRoute.Payments.route)
-                    },
-                    onOpenMore = {
-                        navController.navigate(AppRoute.More.route)
-                    }
-                )
+            DashboardScreen(
+                onOpenDashboard = {
+                    navigateToDashboard()
+                },
+                onOpenClients = {
+                    navigateToClients()
+                },
+                onOpenLoans = {
+                    navigateToLoans()
+                },
+                onOpenPayments = {
+                    navigateToPayments()
+                },
+                onOpenMore = {
+                    navigateToMore()
+                }
+            )
         }
 
         composable(AppRoute.Clients.route) {
@@ -221,6 +214,7 @@ fun AppNavGraph() {
                 }
             )
         }
+
         composable(AppRoute.Loans.route) {
             LoansScreen(
                 onNavigateBack = {
@@ -246,6 +240,7 @@ fun AppNavGraph() {
                 }
             )
         }
+
         composable(AppRoute.Payments.route) {
             PaymentsScreen(
                 onNavigateBack = {
@@ -268,6 +263,7 @@ fun AppNavGraph() {
                 }
             )
         }
+
         composable(AppRoute.More.route) {
             MoreScreen(
                 onNavigateBack = {
@@ -292,14 +288,12 @@ fun AppNavGraph() {
                     navController.navigate(AppRoute.Help.route)
                 },
                 onLogout = {
-                    LocalAuthRepository.logout(appLockContext)
-                    navController.navigate(AppRoute.Login.route) {
-                        popUpTo(0)
-                        launchSingleTop = true
-                    }
+                    LocalAuthRepository.logout(appContext)
+                    navigateToLogin()
                 }
             )
         }
+
         composable(AppRoute.Preferences.route) {
             PreferencesScreen(
                 onNavigateBack = {
@@ -328,6 +322,30 @@ fun AppNavGraph() {
             ReportsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onOpenClients = {
+                    navigateToClients()
+                },
+                onOpenLoans = {
+                    navigateToLoans()
+                },
+                onOpenPayments = {
+                    navigateToPayments()
+                },
+                onOpenMore = {
+                    navigateToMore()
+                },
+                onOpenBackup = {
+                    navController.navigate(AppRoute.Backup.route)
+                },
+                onOpenExport = {
+                    navController.navigate(AppRoute.Backup.route)
+                },
+                onOpenSettings = {
+                    navController.navigate(AppRoute.Preferences.route)
+                },
+                onOpenPreferences = {
+                    navController.navigate(AppRoute.Preferences.route)
                 }
             )
         }
@@ -347,6 +365,7 @@ fun AppNavGraph() {
                 }
             )
         }
+
         composable(AppRoute.CreateClient.route) {
             CreateClientScreen(
                 onNavigateBack = {
@@ -394,6 +413,7 @@ fun AppNavGraph() {
                 }
             )
         }
+
         composable(
             route = AppRoute.LoansByClient.route,
             arguments = listOf(
@@ -428,11 +448,11 @@ fun AppNavGraph() {
                 },
                 onOpenLoan = { loanId ->
                     navController.navigate(AppRoute.LoanDetail.createRoute(loanId))
-                }
-            ,
+                },
                 onCreatePayment = { loanId ->
                     navController.navigate(AppRoute.CreatePayment.createRoute(loanId))
-                })
+                }
+            )
         }
 
         composable(
@@ -484,8 +504,7 @@ fun AppNavGraph() {
                 },
                 onOpenPayments = {
                     navController.navigate(AppRoute.PaymentsByLoan.createRoute(loanId))
-                }
-                ,
+                },
                 onEditLoan = {
                     navController.navigate(AppRoute.EditLoan.createRoute(loanId))
                 }
@@ -542,6 +561,7 @@ fun AppNavGraph() {
                 }
             )
         }
+
         composable(
             route = AppRoute.EditClient.route,
             arguments = listOf(
@@ -599,35 +619,3 @@ fun AppNavGraph() {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

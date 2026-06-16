@@ -1,12 +1,22 @@
 ﻿package com.controlprestamos.features.payments.presentation
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -18,10 +28,15 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.controlprestamos.core.documents.PdfShareUtils
+import com.controlprestamos.core.rules.FinancialOperationRules
 import com.controlprestamos.core.ui.components.AppCard
 import com.controlprestamos.core.ui.components.AppStatus
 import com.controlprestamos.core.ui.components.AppTextField
@@ -31,13 +46,13 @@ import com.controlprestamos.core.ui.components.PrimaryButton
 import com.controlprestamos.core.ui.components.SecondaryButton
 import com.controlprestamos.core.ui.components.StatusChip
 import com.controlprestamos.core.ui.theme.AppColors
+import com.controlprestamos.core.ui.theme.AppRadius
 import com.controlprestamos.core.ui.theme.AppSpacing
 import com.controlprestamos.features.clients.data.LocalClientRepository
 import com.controlprestamos.features.installments.data.LocalInstallmentRepository
 import com.controlprestamos.features.loans.data.LocalLoanRepository
 import com.controlprestamos.features.payments.data.LocalPaymentRepository
 import com.controlprestamos.features.payments.domain.model.Payment
-import com.controlprestamos.core.rules.FinancialOperationRules
 import com.controlprestamos.features.payments.domain.receipt.PaymentReceiptFormatter
 import com.controlprestamos.features.payments.domain.receipt.PaymentReceiptPdfGenerator
 import com.controlprestamos.features.preferences.data.LocalPreferencesRepository
@@ -85,17 +100,29 @@ fun PaymentsByLoanScreen(
     }
 
     val loan = LocalLoanRepository.getLoanById(loanId)
-    val client = loan?.let { LocalClientRepository.getClientById(it.clientId) }
+    val client = loan?.let { currentLoan ->
+        LocalClientRepository.getClientById(currentLoan.clientId)
+    }
 
     val payments = LocalPaymentRepository
         .getPaymentHistoryByLoan(loanId)
         .let { if (refreshVersion >= 0) it else it }
 
-    val activePayments = payments.filter { FinancialOperationRules.shouldCountPaymentFinancially(it) }
-    val cancelledPayments = payments.filter { !FinancialOperationRules.shouldCountPaymentFinancially(it) }
+    val activePayments = payments.filter { payment ->
+        FinancialOperationRules.shouldCountPaymentFinancially(payment)
+    }
 
-    val activePaid = activePayments.sumOf { it.amount }
-    val cancelledAmount = cancelledPayments.sumOf { it.amount }
+    val cancelledPayments = payments.filter { payment ->
+        !FinancialOperationRules.shouldCountPaymentFinancially(payment)
+    }
+
+    val activePaid = activePayments.sumOf { payment ->
+        payment.amount
+    }
+
+    val cancelledAmount = cancelledPayments.sumOf { payment ->
+        payment.amount
+    }
 
     val remainingAmount = if (loan == null) {
         0.0
@@ -142,6 +169,8 @@ fun PaymentsByLoanScreen(
                     .padding(AppSpacing.screenHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
             ) {
+                Spacer(modifier = Modifier.height(AppSpacing.xs))
+
                 if (loan == null) {
                     EmptyState(
                         title = "Préstamo no encontrado",
@@ -156,6 +185,13 @@ fun PaymentsByLoanScreen(
 
                     return@Column
                 }
+
+                PaymentLoanHeroCard(
+                    clientName = client?.fullName ?: "Cliente",
+                    loanName = loan.description.ifBlank { "Préstamo #${loan.id.takeLast(4)}" },
+                    remainingAmount = remainingAmount,
+                    currencySymbol = preferences.currencySymbol
+                )
 
                 PaymentHistorySummaryCard(
                     totalExpected = loan.totalExpectedAmount,
@@ -174,36 +210,32 @@ fun PaymentsByLoanScreen(
                     )
                 }
 
-                if (!actionMessage.isNullOrBlank()) {
-                    AppCard(bordered = true) {
-                        Text(
-                            text = actionMessage.orEmpty(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (actionMessage.orEmpty().contains("No se pudo")) {
-                                AppColors.Error
-                            } else {
-                                AppColors.Success
-                            }
-                        )
+                actionMessage?.let { message ->
+                    if (message.isNotBlank()) {
+                        PaymentActionMessageCard(message = message)
                     }
                 }
 
                 PaymentHistoryFilterSelector(
                     selectedFilter = selectedFilter,
-                    onSelected = {
-                        selectedFilter = it
+                    allCount = payments.size,
+                    activeCount = activePayments.size,
+                    cancelledCount = cancelledPayments.size,
+                    onSelected = { filter ->
+                        selectedFilter = filter
                         cancellingPaymentId = null
                         cancellationReason = ""
                         actionMessage = null
                     }
                 )
 
-                Text(
-                    text = "Movimientos",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppColors.Gray900
+                SectionTitle(
+                    title = "Movimientos",
+                    subtitle = when (selectedFilter) {
+                        PaymentHistoryFilter.ALL -> "Todos los pagos registrados del préstamo."
+                        PaymentHistoryFilter.ACTIVE -> "Pagos que sí cuentan en saldo y reportes."
+                        PaymentHistoryFilter.CANCELLED -> "Pagos anulados conservados como auditoría."
+                    }
                 )
 
                 if (visiblePayments.isEmpty()) {
@@ -225,7 +257,8 @@ fun PaymentsByLoanScreen(
                             isCancelling = cancellingPaymentId == payment.id,
                             cancellationReason = cancellationReason,
                             onChangeCancellationReason = {
-                                cancellationReason = it
+                                cancellationReason = it.take(180)
+                                actionMessage = null
                             },
                             onShareReceiptText = {
                                 val receipt = PaymentReceiptFormatter.buildPaymentReceipt(
@@ -268,14 +301,16 @@ fun PaymentsByLoanScreen(
                                 cancellationReason = ""
                             },
                             onConfirmCancel = {
-                                if (cancellationReason.isBlank()) {
+                                val cleanReason = cancellationReason.trim()
+
+                                if (cleanReason.isBlank()) {
                                     actionMessage = "No se pudo anular: debes escribir un motivo."
                                     return@PaymentHistoryCard
                                 }
 
                                 val cancelled = LocalPaymentRepository.cancelPayment(
                                     paymentId = payment.id,
-                                    reason = cancellationReason
+                                    reason = cleanReason
                                 )
 
                                 if (cancelled) {
@@ -294,6 +329,102 @@ fun PaymentsByLoanScreen(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(AppSpacing.md))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentLoanHeroCard(
+    clientName: String,
+    loanName: String,
+    remainingAmount: Double,
+    currencySymbol: String
+) {
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(58.dp)
+                        .clip(CircleShape)
+                        .background(AppColors.AccentTeal.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🧾",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = clientName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.Gray900
+                    )
+
+                    Text(
+                        text = loanName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AppColors.Gray600
+                    )
+                }
+            }
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = if (remainingAmount > 0.0) {
+                    AppColors.Warning.copy(alpha = 0.08f)
+                } else {
+                    AppColors.Success.copy(alpha = 0.08f)
+                },
+                shape = RoundedCornerShape(AppRadius.card),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (remainingAmount > 0.0) {
+                        AppColors.Warning.copy(alpha = 0.25f)
+                    } else {
+                        AppColors.Success.copy(alpha = 0.25f)
+                    }
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(AppSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = if (remainingAmount > 0.0) "Saldo pendiente" else "Estado del préstamo",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = AppColors.Gray600
+                    )
+
+                    Text(
+                        text = if (remainingAmount > 0.0) {
+                            formatMoney(remainingAmount, currencySymbol)
+                        } else {
+                            "Préstamo saldado"
+                        },
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (remainingAmount > 0.0) AppColors.Warning else AppColors.Success
+                    )
+                }
             }
         }
     }
@@ -309,6 +440,12 @@ private fun PaymentHistorySummaryCard(
     cancelledAmount: Double,
     currencySymbol: String
 ) {
+    val progress = if (totalExpected > 0.0) {
+        (activePaid / totalExpected).toFloat().coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
     AppCard(
         modifier = Modifier.fillMaxWidth(),
         bordered = true
@@ -316,28 +453,14 @@ private fun PaymentHistorySummaryCard(
         Column(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
-            Text(
-                text = "Resumen financiero",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray900
+            SectionTitle(
+                title = "Resumen financiero",
+                subtitle = "Pagos activos, saldo pendiente y auditoría de anulaciones."
             )
 
-            Text(
-                text = formatMoney(remainingAmount, currencySymbol),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (remainingAmount > 0.0) AppColors.Warning else AppColors.Success
-            )
-
-            Text(
-                text = if (remainingAmount > 0.0) {
-                    "Saldo pendiente"
-                } else {
-                    "Préstamo saldado"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            PaymentProgressBar(
+                progress = progress,
+                color = if (remainingAmount > 0.0) AppColors.AccentTeal else AppColors.Success
             )
 
             Row(
@@ -351,7 +474,7 @@ private fun PaymentHistorySummaryCard(
                 )
 
                 CompactPaymentStat(
-                    title = "Pagado activo",
+                    title = "Pagado",
                     value = formatMoney(activePaid, currencySymbol),
                     modifier = Modifier.weight(1f),
                     success = activePaid > 0.0
@@ -363,18 +486,27 @@ private fun PaymentHistorySummaryCard(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
             ) {
                 CompactPaymentStat(
-                    title = "Pagos activos",
-                    value = activeCount.toString(),
-                    modifier = Modifier.weight(1f)
+                    title = "Pendiente",
+                    value = formatMoney(remainingAmount, currencySymbol),
+                    modifier = Modifier.weight(1f),
+                    warning = remainingAmount > 0.0,
+                    success = remainingAmount <= 0.0
                 )
 
                 CompactPaymentStat(
-                    title = "Anulados",
-                    value = "$cancelledCount / ${formatMoney(cancelledAmount, currencySymbol)}",
+                    title = "Activos",
+                    value = activeCount.toString(),
                     modifier = Modifier.weight(1f),
-                    danger = cancelledCount > 0
+                    success = activeCount > 0
                 )
             }
+
+            CompactPaymentStat(
+                title = "Pagos anulados",
+                value = "$cancelledCount · ${formatMoney(cancelledAmount, currencySymbol)}",
+                modifier = Modifier.fillMaxWidth(),
+                danger = cancelledCount > 0
+            )
         }
     }
 }
@@ -385,14 +517,35 @@ private fun CompactPaymentStat(
     value: String,
     modifier: Modifier = Modifier,
     success: Boolean = false,
+    warning: Boolean = false,
     danger: Boolean = false
 ) {
-    AppCard(
-        modifier = modifier,
-        bordered = true
+    val color = when {
+        danger -> AppColors.Error
+        warning -> AppColors.Warning
+        success -> AppColors.Success
+        else -> AppColors.Gray900
+    }
+
+    val backgroundColor = when {
+        danger -> AppColors.Error.copy(alpha = 0.08f)
+        warning -> AppColors.Warning.copy(alpha = 0.08f)
+        success -> AppColors.Success.copy(alpha = 0.08f)
+        else -> AppColors.SurfaceMuted
+    }
+
+    Surface(
+        modifier = modifier.heightIn(min = 70.dp),
+        color = backgroundColor,
+        shape = RoundedCornerShape(AppRadius.card),
+        border = BorderStroke(
+            width = 1.dp,
+            color = color.copy(alpha = 0.18f)
+        )
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+            modifier = Modifier.padding(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Text(
                 text = title,
@@ -403,44 +556,120 @@ private fun CompactPaymentStat(
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = when {
-                    danger -> AppColors.Error
-                    success -> AppColors.Success
-                    else -> AppColors.Gray900
-                }
+                fontWeight = FontWeight.Bold,
+                color = color
             )
         }
     }
 }
 
 @Composable
+private fun PaymentActionMessageCard(
+    message: String
+) {
+    val isError = message.contains("No se pudo", ignoreCase = true)
+
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        bordered = true
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (isError) AppColors.Error else AppColors.Success
+        )
+    }
+}
+
+@Composable
 private fun PaymentHistoryFilterSelector(
     selectedFilter: PaymentHistoryFilter,
+    allCount: Int,
+    activeCount: Int,
+    cancelledCount: Int,
     onSelected: (PaymentHistoryFilter) -> Unit
 ) {
-    Row(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        bordered = true
     ) {
-        PaymentHistoryFilter.entries.forEach { filter ->
-            if (selectedFilter == filter) {
-                PrimaryButton(
-                    text = filter.label,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onSelected(filter)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            SectionTitle(
+                title = "Filtrar movimientos",
+                subtitle = "Separa pagos activos de pagos anulados para revisar mejor el historial."
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+            ) {
+                PaymentHistoryFilter.entries.forEach { filter ->
+                    val count = when (filter) {
+                        PaymentHistoryFilter.ALL -> allCount
+                        PaymentHistoryFilter.ACTIVE -> activeCount
+                        PaymentHistoryFilter.CANCELLED -> cancelledCount
                     }
-                )
-            } else {
-                SecondaryButton(
-                    text = filter.label,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onSelected(filter)
-                    }
-                )
+
+                    PaymentFilterPill(
+                        modifier = Modifier.weight(1f),
+                        text = filter.label,
+                        count = count,
+                        selected = selectedFilter == filter,
+                        onClick = {
+                            onSelected(filter)
+                        }
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun PaymentFilterPill(
+    modifier: Modifier = Modifier,
+    text: String,
+    count: Int,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val color = if (selected) AppColors.AccentTeal else AppColors.Gray500
+
+    Surface(
+        modifier = modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(AppRadius.pill))
+            .clickable {
+                onClick()
+            },
+        color = if (selected) color.copy(alpha = 0.12f) else AppColors.SurfaceMuted,
+        shape = RoundedCornerShape(AppRadius.pill),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (selected) color.copy(alpha = 0.42f) else AppColors.Border
+        )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = color
+            )
         }
     }
 }
@@ -461,6 +690,7 @@ private fun PaymentHistoryCard(
     onConfirmCancel: () -> Unit
 ) {
     val isCancelled = !FinancialOperationRules.shouldCountPaymentFinancially(payment)
+    val statusColor = if (isCancelled) AppColors.Error else AppColors.Success
 
     AppCard(
         modifier = Modifier.fillMaxWidth(),
@@ -471,14 +701,41 @@ private fun PaymentHistoryCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (isCancelled) "Pago anulado" else "Pago activo",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isCancelled) AppColors.Error else AppColors.Gray900
-                )
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(statusColor.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isCancelled) "!" else "✓",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = statusColor
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = if (isCancelled) "Pago anulado" else "Pago activo",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isCancelled) AppColors.Error else AppColors.Gray900
+                    )
+
+                    Text(
+                        text = formatDate(payment.createdAtMillis, dateFormat),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = AppColors.Gray500
+                    )
+                }
 
                 if (isCancelled) {
                     Text(
@@ -499,56 +756,45 @@ private fun PaymentHistoryCard(
                 color = if (isCancelled) AppColors.Gray600 else AppColors.AccentTeal
             )
 
-            Text(
-                text = "Fecha real: ${formatDate(payment.createdAtMillis, dateFormat)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            PaymentInfoLine(
+                label = "Método",
+                value = payment.method.ifBlank { "No registrado" }
             )
 
-            Text(
-                text = "Método: ${payment.method.ifBlank { "No registrado" }}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            PaymentInfoLine(
+                label = "Referencia",
+                value = payment.reference.ifBlank { "Sin referencia" }
             )
 
-            Text(
-                text = "Referencia: ${payment.reference.ifBlank { "Sin referencia" }}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
-            )
-
-            Text(
-                text = "Nota: ${payment.notes.ifBlank { "Sin nota" }}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColors.Gray600
+            PaymentInfoLine(
+                label = "Nota",
+                value = payment.notes.ifBlank { "Sin nota" }
             )
 
             if (!isCancelled && balanceAfterPayment != null) {
-                Text(
-                    text = "Saldo luego del pago: ${formatMoney(balanceAfterPayment, currencySymbol)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (balanceAfterPayment > 0.0) AppColors.Warning else AppColors.Success
+                PaymentInfoLine(
+                    label = "Saldo luego del pago",
+                    value = formatMoney(balanceAfterPayment, currencySymbol),
+                    valueColor = if (balanceAfterPayment > 0.0) AppColors.Warning else AppColors.Success
                 )
             }
 
             if (isCancelled) {
-                Text(
-                    text = "Motivo: ${payment.cancellationReason ?: "Sin motivo registrado"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AppColors.Error
+                PaymentInfoLine(
+                    label = "Motivo",
+                    value = payment.cancellationReason ?: "Sin motivo registrado",
+                    valueColor = AppColors.Error
                 )
 
                 payment.cancelledAtMillis?.let { cancelledAt ->
-                    Text(
-                        text = "Anulado el: ${formatDate(cancelledAt, dateFormat)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AppColors.Gray600
+                    PaymentInfoLine(
+                        label = "Anulado el",
+                        value = formatDate(cancelledAt, dateFormat)
                     )
                 }
 
                 Text(
-                    text = "Este registro queda en el historial, pero no suma en saldos ni reportes financieros.",
+                    text = "Este registro queda guardado como auditoría, pero no suma en saldos ni reportes financieros.",
                     style = MaterialTheme.typography.bodySmall,
                     color = AppColors.Gray600
                 )
@@ -578,7 +824,7 @@ private fun PaymentHistoryCard(
                         onValueChange = onChangeCancellationReason,
                         label = "Motivo de anulación",
                         singleLine = false,
-                        supportingText = "Este pago no se borrará: quedará como anulado en el historial."
+                        supportingText = "Este pago no se borrará: quedará anulado en el historial."
                     )
 
                     Row(
@@ -605,6 +851,87 @@ private fun PaymentHistoryCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PaymentInfoLine(
+    label: String,
+    value: String,
+    valueColor: Color = AppColors.Gray900
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = AppColors.SurfaceMuted,
+        shape = RoundedCornerShape(AppRadius.card),
+        border = BorderStroke(
+            width = 1.dp,
+            color = AppColors.Border
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(AppSpacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = AppColors.Gray600
+            )
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = valueColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(
+    title: String,
+    subtitle: String
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = AppColors.Gray900
+        )
+
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = AppColors.Gray600
+        )
+    }
+}
+
+@Composable
+private fun PaymentProgressBar(
+    progress: Float,
+    color: Color
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(9.dp)
+            .clip(RoundedCornerShape(AppRadius.pill))
+            .background(AppColors.Gray100)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .height(9.dp)
+                .clip(RoundedCornerShape(AppRadius.pill))
+                .background(color)
+        )
     }
 }
 
@@ -644,7 +971,12 @@ private fun formatDate(
     millis: Long,
     dateFormat: String
 ): String {
-    val safePattern = dateFormat.ifBlank { "dd/MM/yyyy" }
+    val safePattern = when (dateFormat) {
+        "dd/MM/yyyy",
+        "MM/dd/yyyy",
+        "yyyy-MM-dd" -> dateFormat
+        else -> "dd/MM/yyyy"
+    }
 
     return runCatching {
         SimpleDateFormat("$safePattern HH:mm", Locale.getDefault())
@@ -654,5 +986,3 @@ private fun formatDate(
             .format(Date(millis))
     }
 }
-
-

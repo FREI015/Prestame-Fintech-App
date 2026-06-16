@@ -1,5 +1,6 @@
 ﻿package com.controlprestamos.features.clients.presentation
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.controlprestamos.core.documents.PdfShareUtils
 import com.controlprestamos.core.ui.components.AppTopBar
 import com.controlprestamos.core.ui.components.ClientAvatar
 import com.controlprestamos.core.ui.components.EmptyState
@@ -38,6 +39,7 @@ import com.controlprestamos.core.ui.theme.AppColors
 import com.controlprestamos.core.ui.theme.AppRadius
 import com.controlprestamos.core.ui.theme.AppSpacing
 import com.controlprestamos.features.clients.data.LocalClientRepository
+import com.controlprestamos.features.clients.domain.collection.ClientCollectionPdfGenerator
 import com.controlprestamos.features.clients.domain.model.ClientStatus
 import com.controlprestamos.features.loans.data.LocalLoanRepository
 import com.controlprestamos.features.loans.domain.model.Loan
@@ -61,9 +63,10 @@ fun ClientDetailScreen(
     onOpenLoanDetail: (String) -> Unit = {},
     onCreatePayment: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val client = LocalClientRepository.getClientById(clientId)
     val preferences = LocalPreferencesRepository.getPreferences(
-        context = LocalContext.current
+        context = context
     )
 
     Scaffold(
@@ -130,7 +133,32 @@ fun ClientDetailScreen(
                 ClientDetailActions(
                     onCreateLoan = onCreateLoan,
                     onCreatePayment = onCreatePayment,
-                    onEditClient = onEditClient
+                    onEditClient = onEditClient,
+                    onGenerateCollectionPdf = {
+                        runCatching {
+                            val loansForPdf = LocalLoanRepository.getLoansByClient(client.id)
+
+                            val file = ClientCollectionPdfGenerator.generate(
+                                context = context,
+                                client = client,
+                                loans = loansForPdf,
+                                businessName = "Control Préstamos",
+                                currencySymbol = preferences.currencySymbol
+                            )
+
+                            PdfShareUtils.sharePdf(
+                                context = context,
+                                file = file,
+                                chooserTitle = "Compartir PDF de cobranza"
+                            )
+                        }.onFailure {
+                            Toast.makeText(
+                                context,
+                                "No se pudo generar el PDF de cobranza.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
                 )
 
                 ClientLoansCard(
@@ -313,32 +341,49 @@ private fun ClientFinancialSummary(
 private fun ClientDetailActions(
     onCreateLoan: () -> Unit,
     onCreatePayment: () -> Unit,
-    onEditClient: () -> Unit
+    onEditClient: () -> Unit,
+    onGenerateCollectionPdf: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
     ) {
-        DetailActionButton(
-            text = "Nuevo préstamo",
-            color = AppColors.AccentTeal,
-            onClick = onCreateLoan,
-            modifier = Modifier.weight(1f)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            DetailActionButton(
+                text = "Nuevo préstamo",
+                color = AppColors.AccentTeal,
+                onClick = onCreateLoan,
+                modifier = Modifier.weight(1f)
+            )
 
-        DetailActionButton(
-            text = "Registrar pago",
-            color = AppColors.PrimaryDark,
-            onClick = onCreatePayment,
-            modifier = Modifier.weight(1f)
-        )
+            DetailActionButton(
+                text = "Registrar pago",
+                color = AppColors.PrimaryDark,
+                onClick = onCreatePayment,
+                modifier = Modifier.weight(1f)
+            )
+        }
 
-        DetailActionButton(
-            text = "Editar",
-            color = AppColors.SecondaryDark,
-            onClick = onEditClient,
-            modifier = Modifier.weight(1f)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            DetailActionButton(
+                text = "PDF de cobranza",
+                color = AppColors.Warning,
+                onClick = onGenerateCollectionPdf,
+                modifier = Modifier.weight(1f)
+            )
+
+            DetailActionButton(
+                text = "Editar",
+                color = AppColors.SecondaryDark,
+                onClick = onEditClient,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 

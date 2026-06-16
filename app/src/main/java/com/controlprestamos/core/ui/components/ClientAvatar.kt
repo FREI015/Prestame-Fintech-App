@@ -1,4 +1,4 @@
-﻿package com.controlprestamos.core.ui.components
+package com.controlprestamos.core.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -19,7 +19,7 @@ import com.controlprestamos.core.ui.theme.AppColors
 fun ClientAvatar(
     fullName: String,
     modifier: Modifier = Modifier,
-    size: Dp = 40.dp
+    size: Dp = 44.dp
 ) {
     Box(
         modifier = modifier
@@ -43,10 +43,13 @@ private fun buildInitials(fullName: String): String {
         .split(" ")
         .filter { it.isNotBlank() }
 
-    if (parts.isEmpty()) return "?"
+    if (parts.isEmpty()) {
+        return "?"
+    }
 
     return parts
         .take(2)
-        .map { it.first().uppercaseChar() }
+        .mapNotNull { it.firstOrNull()?.uppercaseChar() }
         .joinToString("")
+        .ifBlank { "?" }
 }

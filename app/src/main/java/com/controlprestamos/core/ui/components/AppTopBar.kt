@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.controlprestamos.core.ui.theme.AppColors
 import com.controlprestamos.core.ui.theme.AppSpacing
@@ -45,8 +46,10 @@ fun AppTopBar(
     onMore: () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    val contentHeight = if (subtitle.isNullOrBlank()) {
-        56.dp
+    val hasSubtitle = !subtitle.isNullOrBlank()
+
+    val contentHeight = if (hasSubtitle) {
+        72.dp
     } else {
         64.dp
     }
@@ -54,7 +57,7 @@ fun AppTopBar(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = AppColors.PrimaryDark,
-        shadowElevation = 2.dp
+        shadowElevation = 4.dp
     ) {
         Row(
             modifier = Modifier
@@ -73,23 +76,29 @@ fun AppTopBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 when {
-                    showBack -> TopBarAction(
-                        text = "‹",
-                        contentDescription = "Volver",
-                        onClick = onBack
-                    )
+                    showBack -> {
+                        TopBarAction(
+                            text = "←",
+                            contentDescription = "Volver",
+                            onClick = onBack
+                        )
+                    }
 
-                    showMore -> TopBarAction(
-                        text = "☰",
-                        contentDescription = "Más opciones",
-                        onClick = onMore
-                    )
+                    showMore -> {
+                        TopBarAction(
+                            text = "⋯",
+                            contentDescription = "Más opciones",
+                            onClick = onMore
+                        )
+                    }
 
-                    showMenu -> TopBarAction(
-                        text = "☰",
-                        contentDescription = "Menú",
-                        onClick = onMenu
-                    )
+                    showMenu -> {
+                        TopBarAction(
+                            text = "☰",
+                            contentDescription = "Menú",
+                            onClick = onMenu
+                        )
+                    }
                 }
 
                 if (showBack || showMore || showMenu) {
@@ -97,20 +106,26 @@ fun AppTopBar(
                 }
 
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
 
-                    if (!subtitle.isNullOrBlank()) {
+                    if (hasSubtitle) {
                         Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Color.White.copy(alpha = 0.72f)
+                            text = subtitle.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White.copy(alpha = 0.72f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -121,9 +136,7 @@ fun AppTopBar(
                 horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)
             ) {
                 if (showNotifications) {
-                    TopBarAction(
-                        text = "•",
-                        contentDescription = "Notificaciones",
+                    NotificationAction(
                         onClick = onNotifications
                     )
                 }
@@ -142,9 +155,9 @@ private fun TopBarAction(
 ) {
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(42.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.08f))
+            .background(Color.White.copy(alpha = 0.10f))
             .semantics {
                 this.contentDescription = contentDescription
             }
@@ -157,8 +170,43 @@ private fun TopBarAction(
         Text(
             text = text,
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             color = Color.White
+        )
+    }
+}
+
+@Composable
+private fun NotificationAction(
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(42.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.10f))
+            .semantics {
+                this.contentDescription = "Notificaciones"
+            }
+            .clickable(
+                role = Role.Button,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "🔔",
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White
+        )
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 8.dp, end = 8.dp)
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(AppColors.Warning)
         )
     }
 }

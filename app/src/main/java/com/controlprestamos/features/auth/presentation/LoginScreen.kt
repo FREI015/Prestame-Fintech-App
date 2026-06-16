@@ -393,6 +393,29 @@ private fun ProfesionalAccessCard(
     onSelectPin: () -> Unit,
     onBiometric: () -> Unit
 ) {
+    val canUsePin = hasPin
+    val canUseBiometric = biometricEnabled && biometricAvailable
+
+    val pinSubtitle = if (hasPin) {
+        "Rápido"
+    } else {
+        "Configurar"
+    }
+
+    val biometricSubtitle = when {
+        biometricEnabled && biometricAvailable -> "Biometría"
+        biometricEnabled && !biometricAvailable -> "No disponible"
+        else -> "Configurar"
+    }
+
+    val helperText = when {
+        !hasPin && !biometricEnabled -> "El PIN y la huella se configuran desde Seguridad. Se muestran aquí para mantener claro el acceso disponible."
+        !hasPin -> "El PIN todavía no está configurado. Actívalo desde Seguridad."
+        !biometricEnabled -> "La huella todavía no está activada. Actívala desde Seguridad."
+        !biometricAvailable -> biometricLabel
+        else -> biometricLabel
+    }
+
     AppCard(
         modifier = Modifier.fillMaxWidth(),
         bordered = true
@@ -445,46 +468,38 @@ private fun ProfesionalAccessCard(
                     onClick = onSelectPassword
                 )
 
-                if (hasPin) {
-                    AccessMethodButton(
-                        icon = "\uD83D\uDD22",
-                        title = "PIN",
-                        subtitle = "Rápido",
-                        selected = selectedMode == LoginAccessMode.PIN,
-                        enabled = true,
-                        modifier = Modifier.weight(1f),
-                        onClick = onSelectPin
-                    )
-                }
+                AccessMethodButton(
+                    icon = "\uD83D\uDD22",
+                    title = "PIN",
+                    subtitle = pinSubtitle,
+                    selected = selectedMode == LoginAccessMode.PIN,
+                    enabled = canUsePin,
+                    modifier = Modifier.weight(1f),
+                    onClick = onSelectPin
+                )
 
-                if (biometricEnabled) {
-                    AccessMethodButton(
-                        icon = "\uD83D\uDC46",
-                        title = "Huella",
-                        subtitle = "Biometría",
-                        selected = false,
-                        enabled = biometricAvailable,
-                        modifier = Modifier.weight(1f),
-                        onClick = onBiometric
-                    )
-                }
-            }
-
-            if (biometricEnabled) {
-                Text(
-                    text = biometricLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (biometricAvailable) {
-                        AppColors.Gray600
-                    } else {
-                        AppColors.Warning
-                    }
+                AccessMethodButton(
+                    icon = "\uD83D\uDC46",
+                    title = "Huella",
+                    subtitle = biometricSubtitle,
+                    selected = false,
+                    enabled = canUseBiometric,
+                    modifier = Modifier.weight(1f),
+                    onClick = onBiometric
                 )
             }
+
+            Text(
+                text = helperText,
+                style = MaterialTheme.typography.bodySmall,
+                color = when {
+                    hasPin && biometricEnabled && biometricAvailable -> AppColors.Gray600
+                    else -> AppColors.Warning
+                }
+            )
         }
     }
 }
-
 @Composable
 private fun AccessMethodButton(
     icon: String,
