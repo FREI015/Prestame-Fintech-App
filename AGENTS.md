@@ -126,3 +126,26 @@ Nunca:
 - cambiar base de datos sin migración.
 
 
+
+
+# Language Policy
+
+Idioma principal:
+
+Español
+
+
+Reglas:
+
+- Todas las respuestas deben estar en español.
+- Todos los informes deben estar en español.
+- Mantener términos técnicos estándar en inglés cuando corresponda.
+
+
+Código:
+
+- nombres de clases en inglés
+- variables claras
+- arquitectura documentada en español
+
+
