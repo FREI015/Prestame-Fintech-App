@@ -98,3 +98,31 @@ refactor/*
 audit/*
 
 
+
+
+## Antigravity Execution Mode
+
+
+Cuando analices:
+
+- No asumir arquitectura.
+- Leer todo antes de cambiar.
+- Mantener compatibilidad.
+- Crear informes primero.
+
+
+Cuando implementes:
+
+- Crear rama.
+- Hacer cambios pequeños.
+- Ejecutar pruebas.
+- Documentar.
+
+
+Nunca:
+
+- eliminar módulos sin aprobación.
+- modificar reglas financieras sin tests.
+- cambiar base de datos sin migración.
+
+
