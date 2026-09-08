@@ -36,3 +36,7 @@ supabase/.temp/
 tmp/
 temp/
 
+keystore.properties
+_stable_release/
+_secure_local/
+reports/
