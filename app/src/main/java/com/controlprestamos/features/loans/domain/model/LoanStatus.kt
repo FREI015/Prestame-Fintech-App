@@ -8,3 +8,4 @@ enum class LoanStatus(
     CANCELLED("Cancelado")
 }
 
+

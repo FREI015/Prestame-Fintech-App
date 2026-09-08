@@ -1,4 +1,4 @@
-package com.controlprestamos.features.dashboard.presentation
+﻿package com.controlprestamos.features.dashboard.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -132,7 +132,7 @@ private fun ReferenceMetricGrid(
             horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
             ReferenceMetricCard(
-                icon = "▣",
+                icon = "â–£",
                 title = "Total prestado",
                 value = state.totalLentText,
                 subtitle = "Capital activo",
@@ -141,7 +141,7 @@ private fun ReferenceMetricGrid(
             )
 
             ReferenceMetricCard(
-                icon = "✓",
+                icon = "âœ“",
                 title = "Cobrado hoy",
                 value = state.collectedTodayText,
                 subtitle = "${state.paymentsToday} pagos",
@@ -164,10 +164,10 @@ private fun ReferenceMetricGrid(
             )
 
             ReferenceMetricCard(
-                icon = "●",
+                icon = "â—",
                 title = "Clientes activos",
                 value = state.activeClients.toString(),
-                subtitle = "Con préstamos vigentes",
+                subtitle = "Con prÃ©stamos vigentes",
                 accentColor = AppColors.PrimaryDark,
                 modifier = Modifier.weight(1f)
             )
@@ -344,7 +344,7 @@ private fun ReferenceChartCard(
                 )
 
                 Text(
-                    text = "Últimos 7 días",
+                    text = "Ãšltimos 7 dÃ­as",
                     style = MaterialTheme.typography.labelMedium,
                     color = AppColors.Gray500
                 )
@@ -429,7 +429,7 @@ private fun ReferenceActiveClientsCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Clientes con préstamos activos",
+                text = "Clientes con prÃ©stamos activos",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
@@ -492,7 +492,7 @@ private fun ReferenceActiveClientRow(
                 )
 
                 Text(
-                    text = "Prestado ${item.loanedText} · Total ${item.totalToCollectText}",
+                    text = "Prestado ${item.loanedText} Â· Total ${item.totalToCollectText}",
                     style = MaterialTheme.typography.labelMedium,
                     color = AppColors.Gray500
                 )
@@ -736,9 +736,9 @@ private fun getGreetingByDeviceTime(): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
 
     return when (hour) {
-        in 5..11 -> "¡Buenos días!"
-        in 12..18 -> "¡Buenas tardes!"
-        else -> "¡Buenas noches!"
+        in 5..11 -> "Â¡Buenos dÃ­as!"
+        in 12..18 -> "Â¡Buenas tardes!"
+        else -> "Â¡Buenas noches!"
     }
 }
 
@@ -798,3 +798,4 @@ private fun formatMoney(
 private fun formatPercent(value: Double): String {
     return DecimalFormat("#,##0.#").format(value) + "%"
 }
+

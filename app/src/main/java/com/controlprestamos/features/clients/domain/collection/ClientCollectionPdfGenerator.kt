@@ -695,3 +695,4 @@ object ClientCollectionPdfGenerator {
         }
     }
 }
+

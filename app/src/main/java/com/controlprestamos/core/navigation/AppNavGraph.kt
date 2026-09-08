@@ -1,38 +1,57 @@
-package com.controlprestamos.core.navigation
+﻿package com.controlprestamos.core.navigation
+
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+
 import androidx.compose.ui.platform.LocalContext
+
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+
+
 import com.controlprestamos.features.audit.presentation.FinancialAuditScreen
+
 import com.controlprestamos.features.auth.data.LocalAuthRepository
 import com.controlprestamos.features.auth.presentation.LoginScreen
 import com.controlprestamos.features.auth.presentation.RegisterScreen
+
 import com.controlprestamos.features.backup.presentation.BackupScreen
+
 import com.controlprestamos.features.clients.presentation.ClientDetailScreen
 import com.controlprestamos.features.clients.presentation.ClientsScreen
 import com.controlprestamos.features.clients.presentation.CreateClientScreen
 import com.controlprestamos.features.clients.presentation.EditClientScreen
+import com.controlprestamos.features.clients.presentation.creation.ClientCreationRouter
+
+
 import com.controlprestamos.features.dashboard.presentation.DashboardScreen
+
 import com.controlprestamos.features.help.presentation.HelpScreen
+
 import com.controlprestamos.features.loans.presentation.CreateLoanScreen
 import com.controlprestamos.features.loans.presentation.EditLoanScreen
 import com.controlprestamos.features.loans.presentation.LoanDetailScreen
 import com.controlprestamos.features.loans.presentation.LoansByClientScreen
 import com.controlprestamos.features.loans.presentation.LoansScreen
+
 import com.controlprestamos.features.more.presentation.MoreScreen
+
 import com.controlprestamos.features.payments.presentation.CreatePaymentScreen
 import com.controlprestamos.features.payments.presentation.PaymentsByLoanScreen
 import com.controlprestamos.features.payments.presentation.PaymentsScreen
+
 import com.controlprestamos.features.preferences.presentation.PreferencesScreen
+
 import com.controlprestamos.features.reports.presentation.ReportsScreen
+
 import com.controlprestamos.features.security.data.LocalSecurityRepository
 import com.controlprestamos.features.security.presentation.SecurityScreen
 
@@ -367,7 +386,7 @@ fun AppNavGraph() {
         }
 
         composable(AppRoute.CreateClient.route) {
-            CreateClientScreen(
+            ClientCreationRouter(
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -619,3 +638,6 @@ fun AppNavGraph() {
         }
     }
 }
+
+
+

@@ -1,0 +1,28 @@
+﻿CONTROL PRESTAMOS - REPORTE INSTALACION TELEFONO REAL
+Fecha: 20260613-203729
+
+Release:
+C:\Users\freil\Desktop\ControlPrestamosApp_Profesional\_stable_release\ControlPrestamos_ESTABLE_20260613-200414
+
+APK:
+C:\Users\freil\Desktop\ControlPrestamosApp_Profesional\_stable_release\ControlPrestamos_ESTABLE_20260613-200414\apks\app-debug_debug_20260613-202323.apk
+
+ADB disponible: True
+ADB path: C:\Users\freil\AppData\Local\Android\Sdk\platform-tools\adb.exe
+Device status: device-authorized
+Install status: success
+
+Salida instalacion:
+Performing Streamed Install
+Success
+
+Checklist:
+docs\qa\CONTROL_PRESTAMOS_REAL_DEVICE_CHECKLIST_20260613-203729.md
+
+Instrucciones si no se instaló por ADB:
+1. Copiar el APK debug al teléfono.
+2. Abrir el archivo APK desde el teléfono.
+3. Permitir instalación desde fuente desconocida si Android lo solicita.
+4. Instalar.
+5. Abrir Control Préstamos.
+6. Ejecutar checklist manual.

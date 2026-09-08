@@ -1,4 +1,4 @@
-package com.controlprestamos.features.preferences.presentation
+﻿package com.controlprestamos.features.preferences.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -117,9 +117,9 @@ fun PreferencesScreen(
                 }
 
                 PreferenceSectionCard(
-                    icon = "🏢",
+                    icon = "ðŸ¢",
                     title = "Datos del negocio",
-                    subtitle = "Información que identifica tu cartera y aparece en reportes."
+                    subtitle = "InformaciÃ³n que identifica tu cartera y aparece en reportes."
                 ) {
                     OutlinedTextField(
                         value = businessName,
@@ -135,16 +135,16 @@ fun PreferencesScreen(
                     )
 
                     Text(
-                        text = "Ejemplo: Control Préstamos, Mi Financiera o el nombre comercial que uses.",
+                        text = "Ejemplo: Control PrÃ©stamos, Mi Financiera o el nombre comercial que uses.",
                         style = MaterialTheme.typography.bodySmall,
                         color = AppColors.Gray500
                     )
                 }
 
                 PreferenceSectionCard(
-                    icon = "💵",
+                    icon = "ðŸ’µ",
                     title = "Moneda",
-                    subtitle = "Define el símbolo que se usará para mostrar montos."
+                    subtitle = "Define el sÃ­mbolo que se usarÃ¡ para mostrar montos."
                 ) {
                     OutlinedTextField(
                         value = currencySymbol,
@@ -154,7 +154,7 @@ fun PreferencesScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         label = {
-                            Text("Símbolo de moneda")
+                            Text("SÃ­mbolo de moneda")
                         },
                         singleLine = true
                     )
@@ -185,10 +185,10 @@ fun PreferencesScreen(
 
                         QuickCurrencyButton(
                             modifier = Modifier.weight(1f),
-                            text = "€",
-                            selected = currencySymbol == "€",
+                            text = "â‚¬",
+                            selected = currencySymbol == "â‚¬",
                             onClick = {
-                                currencySymbol = "€"
+                                currencySymbol = "â‚¬"
                                 savedMessage = ""
                             }
                         )
@@ -196,9 +196,9 @@ fun PreferencesScreen(
                 }
 
                 PreferenceSectionCard(
-                    icon = "📅",
+                    icon = "ðŸ“…",
                     title = "Formato de fecha",
-                    subtitle = "Selecciona cómo se mostrarán las fechas dentro de la app."
+                    subtitle = "Selecciona cÃ³mo se mostrarÃ¡n las fechas dentro de la app."
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -206,7 +206,7 @@ fun PreferencesScreen(
                     ) {
                         FormatButton(
                             text = "dd/MM/yyyy",
-                            description = "Día / Mes / Año",
+                            description = "DÃ­a / Mes / AÃ±o",
                             selected = dateFormat == "dd/MM/yyyy",
                             onClick = {
                                 dateFormat = "dd/MM/yyyy"
@@ -217,7 +217,7 @@ fun PreferencesScreen(
 
                         FormatButton(
                             text = "MM/dd/yyyy",
-                            description = "Mes / Día / Año",
+                            description = "Mes / DÃ­a / AÃ±o",
                             selected = dateFormat == "MM/dd/yyyy",
                             onClick = {
                                 dateFormat = "MM/dd/yyyy"
@@ -243,7 +243,7 @@ fun PreferencesScreen(
                         )
 
                         Text(
-                            text = "Los cambios se aplicarán en las pantallas que usan estos datos.",
+                            text = "Los cambios se aplicarÃ¡n en las pantallas que usan estos datos.",
                             style = MaterialTheme.typography.bodySmall,
                             color = AppColors.Gray600
                         )
@@ -302,7 +302,7 @@ private fun PreferencesHeaderCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "⚙️",
+                        text = "âš™ï¸",
                         style = MaterialTheme.typography.headlineSmall
                     )
                 }
@@ -312,14 +312,14 @@ private fun PreferencesHeaderCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "Configuración del negocio",
+                        text = "ConfiguraciÃ³n del negocio",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = AppColors.Gray900
                     )
 
                     Text(
-                        text = "Ajusta los datos principales de operación.",
+                        text = "Ajusta los datos principales de operaciÃ³n.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = AppColors.Gray600
                     )
@@ -586,3 +586,4 @@ private fun SelectablePreferenceButton(
         }
     }
 }
+

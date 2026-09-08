@@ -92,3 +92,4 @@ sealed class AppRoute(val route: String) {
         }
     }
 }
+

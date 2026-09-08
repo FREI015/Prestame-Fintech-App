@@ -16,3 +16,4 @@ data class Loan(
     val cancellationReason: String? = null,
     val cancelledAtMillis: Long? = null
 )
+

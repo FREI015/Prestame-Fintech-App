@@ -8,3 +8,4 @@ data class CreateClientInput(
     val address: String,
     val notes: String
 )
+

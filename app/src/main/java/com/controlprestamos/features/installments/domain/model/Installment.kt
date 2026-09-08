@@ -12,3 +12,4 @@ data class Installment(
     val paidAtMillis: Long?,
     val createdAtMillis: Long
 )
+

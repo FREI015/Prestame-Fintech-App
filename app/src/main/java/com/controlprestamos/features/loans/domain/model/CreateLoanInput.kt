@@ -9,3 +9,4 @@ data class CreateLoanInput(
     val repaymentPlanType: RepaymentPlanType = RepaymentPlanType.INSTALLMENTS,
     val startDateMillis: Long = System.currentTimeMillis()
 )
+

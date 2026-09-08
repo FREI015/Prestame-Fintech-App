@@ -12,3 +12,4 @@ data class Payment(
     val cancelledAtMillis: Long?,
     val createdAtMillis: Long
 )
+

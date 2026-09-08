@@ -42,3 +42,4 @@ private fun normalizePhoneForWhatsApp(rawPhone: String): String {
         else -> digits
     }
 }
+

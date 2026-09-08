@@ -948,3 +948,4 @@ private fun formatPercent(value: Double): String {
 private fun formatDate(millis: Long): String {
     return SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(millis))
 }
+

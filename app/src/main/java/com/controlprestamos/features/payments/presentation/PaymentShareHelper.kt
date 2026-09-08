@@ -20,3 +20,4 @@ fun sharePlainText(
 
     context.startActivity(chooser)
 }
+

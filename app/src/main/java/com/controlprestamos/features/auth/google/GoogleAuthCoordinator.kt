@@ -40,3 +40,4 @@ object GoogleAuthCoordinator {
         return "Google todavía no está configurado. Por seguridad, este botón no permite entrar hasta conectar credenciales reales."
     }
 }
+

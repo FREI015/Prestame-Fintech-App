@@ -1,4 +1,4 @@
-package com.controlprestamos.features.help.presentation
+﻿package com.controlprestamos.features.help.presentation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,7 +30,7 @@ fun HelpScreen(
         topBar = {
             AppTopBar(
                 title = "Acerca de y ayuda",
-                subtitle = "Control Préstamos",
+                subtitle = "Control PrÃ©stamos",
                 showBack = true,
                 showMore = false,
                 showMenu = false,
@@ -57,7 +57,7 @@ fun HelpScreen(
 
                 HelpSection(
                     title = "Flujo recomendado",
-                    body = "Primero registra clientes, luego crea préstamos, después registra pagos y revisa la cartera desde Inicio, Préstamos, Pagos y Reportes."
+                    body = "Primero registra clientes, luego crea prÃ©stamos, despuÃ©s registra pagos y revisa la cartera desde Inicio, PrÃ©stamos, Pagos y Reportes."
                 )
 
                 HelpSection(
@@ -66,23 +66,23 @@ fun HelpScreen(
                 )
 
                 HelpSection(
-                    title = "Préstamos",
-                    body = "Usa Préstamos para revisar saldos, cuotas, estados y detalle financiero. Evita editar condiciones cuando ya existan pagos aplicados."
+                    title = "PrÃ©stamos",
+                    body = "Usa PrÃ©stamos para revisar saldos, cuotas, estados y detalle financiero. Evita editar condiciones cuando ya existan pagos aplicados."
                 )
 
                 HelpSection(
                     title = "Pagos",
-                    body = "Usa Pagos como centro de cobros. Desde allí puedes ver cobros de hoy, cuotas pendientes, vencidas e historial."
+                    body = "Usa Pagos como centro de cobros. Desde allÃ­ puedes ver cobros de hoy, cuotas pendientes, vencidas e historial."
                 )
 
                 HelpSection(
                     title = "Respaldos",
-                    body = "Usa Respaldo local para crear, compartir o restaurar una copia de seguridad. Esta es la ruta correcta para exportar información completa de la app."
+                    body = "Usa Respaldo local para crear, compartir o restaurar una copia de seguridad. Esta es la ruta correcta para exportar informaciÃ³n completa de la app."
                 )
 
                 HelpSection(
                     title = "Seguridad",
-                    body = "Configura PIN y bloqueo de sesión para proteger el acceso. La seguridad no reemplaza los respaldos; ambas funciones deben usarse juntas."
+                    body = "Configura PIN y bloqueo de sesiÃ³n para proteger el acceso. La seguridad no reemplaza los respaldos; ambas funciones deben usarse juntas."
                 )
 
                 Spacer(modifier = Modifier.height(AppSpacing.lg))
@@ -101,7 +101,7 @@ private fun AboutCard() {
             verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
         ) {
             Text(
-                text = "Control Préstamos",
+                text = "Control PrÃ©stamos",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Gray900
@@ -115,13 +115,13 @@ private fun AboutCard() {
             )
 
             Text(
-                text = "Versión 1.1.0-dev",
+                text = "VersiÃ³n 1.1.0-dev",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppColors.Gray700
             )
 
             Text(
-                text = "Aplicación local para control de clientes, préstamos, cuotas, pagos, reportes, respaldos y seguridad de acceso.",
+                text = "AplicaciÃ³n local para control de clientes, prÃ©stamos, cuotas, pagos, reportes, respaldos y seguridad de acceso.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AppColors.Gray600
             )

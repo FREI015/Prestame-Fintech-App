@@ -777,3 +777,4 @@ private fun formatMoney(
 private fun formatPercent(value: Double): String {
     return DecimalFormat("#,##0.#").format(value) + "%"
 }
+

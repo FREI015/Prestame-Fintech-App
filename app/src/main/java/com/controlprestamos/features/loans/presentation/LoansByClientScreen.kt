@@ -614,3 +614,4 @@ private fun formatDate(
         SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(millis))
     }
 }
+

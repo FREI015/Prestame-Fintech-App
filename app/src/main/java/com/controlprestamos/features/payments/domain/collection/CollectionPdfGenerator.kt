@@ -73,3 +73,4 @@ object CollectionPdfGenerator {
         return file
     }
 }
+

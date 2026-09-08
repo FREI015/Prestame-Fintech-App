@@ -136,3 +136,4 @@ private fun ChartBar(
 private fun formatMoney(value: Double): String {
     return "$" + DecimalFormat("#,##0.00").format(value)
 }
+

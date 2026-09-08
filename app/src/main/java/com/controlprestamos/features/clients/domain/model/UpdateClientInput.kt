@@ -9,3 +9,4 @@ data class UpdateClientInput(
     val address: String,
     val notes: String
 )
+

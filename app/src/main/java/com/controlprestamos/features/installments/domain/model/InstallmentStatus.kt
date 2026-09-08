@@ -9,3 +9,4 @@ enum class InstallmentStatus(
     OVERDUE("Vencida"),
     CANCELLED("Cancelada")
 }
+

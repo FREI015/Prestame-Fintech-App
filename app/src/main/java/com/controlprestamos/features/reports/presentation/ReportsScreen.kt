@@ -648,3 +648,4 @@ private fun keepReportCallbacksCompatible(
 ) {
     callbacks.isNotEmpty()
 }
+

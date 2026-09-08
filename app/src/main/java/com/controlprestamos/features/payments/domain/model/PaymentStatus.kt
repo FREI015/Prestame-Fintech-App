@@ -6,3 +6,4 @@ enum class PaymentStatus(
     ACTIVE("Activo"),
     CANCELLED("Anulado")
 }
+

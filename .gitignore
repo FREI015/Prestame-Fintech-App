@@ -1,67 +1,38 @@
-﻿.gradle/
-build/
-*/build/
-app/build/
-out/
-.externalNativeBuild/
-.cxx/
-.kotlin/
-
+﻿# Android Studio
 .idea/
 *.iml
-*.ipr
-*.iws
 
+# Gradle
+.gradle/
+build/
+*/build/
+
+# Local
 local.properties
 
+# Kotlin
+.kotlin/
+
+# Logs
+*.log
+
+# APK
 *.apk
 *.aab
-*.ap_
-*.aar
-mapping/
-outputs/
-captures/
 
-*.jks
-*.keystore
-keystore.properties
-signing.properties
-google-services.json
-secrets.properties
+# Secrets
 .env
-.env.*
-*.pem
-*.key
-*.p12
+*.keystore
+*.jks
 
-*.log
-*.hprof
-java_pid*.hprof
-hs_err_pid*
-replay_pid*
-
+# OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
-*.tmp
-*.temp
-*.bak
-*.swp
-*.swo
-*~
+# Supabase
+supabase/.temp/
 
-_migration_backup/
-_migration_reference/
-_stable_release/
-_local_archives/
-docs/migration/
-Auditoria_Registro.txt
-*.zip
+# Temporary
+tmp/
+temp/
 
-!gradle/wrapper/gradle-wrapper.jar
-!README.md
-!gradle.properties
-!docs/
-!docs/qa/
-_secure_local/

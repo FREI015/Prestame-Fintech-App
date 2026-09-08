@@ -73,3 +73,4 @@ object AppColors {
     val Muted = Gray500
     val MutedSoft = Gray100
 }
+

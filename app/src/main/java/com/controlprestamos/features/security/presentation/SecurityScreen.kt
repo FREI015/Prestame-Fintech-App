@@ -1,4 +1,4 @@
-package com.controlprestamos.features.security.presentation
+﻿package com.controlprestamos.features.security.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -84,7 +84,7 @@ fun SecurityScreen(
         topBar = {
             AppTopBar(
                 title = "Seguridad",
-                subtitle = "PIN, huella y bloqueo automático",
+                subtitle = "PIN, huella y bloqueo automÃ¡tico",
                 showBack = true,
                 onBack = onNavigateBack
             )
@@ -144,12 +144,12 @@ fun SecurityScreen(
                         }
 
                         if (!LocalSecurityRepository.isPinValid(newPin)) {
-                            message = "El PIN debe tener entre 4 y 6 números."
+                            message = "El PIN debe tener entre 4 y 6 nÃºmeros."
                             return@PinSettingsCard
                         }
 
                         if (newPin != confirmPin) {
-                            message = "La confirmación del PIN no coincide."
+                            message = "La confirmaciÃ³n del PIN no coincide."
                             return@PinSettingsCard
                         }
 
@@ -179,7 +179,7 @@ fun SecurityScreen(
                     },
                     onValidatePin = {
                         message = if (LocalSecurityRepository.validatePin(context, testPin)) {
-                            "PIN válido."
+                            "PIN vÃ¡lido."
                         } else {
                             "PIN incorrecto."
                         }
@@ -230,7 +230,7 @@ fun SecurityScreen(
                     onSelected = { minutes ->
                         LocalSecurityRepository.setAutoLockMinutes(context, minutes)
                         refreshVersion++
-                        message = "Bloqueo automático actualizado."
+                        message = "Bloqueo automÃ¡tico actualizado."
                     }
                 )
 
@@ -264,7 +264,7 @@ private fun SecurityHeaderCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "🔐",
+                        text = "ðŸ”",
                         style = MaterialTheme.typography.headlineSmall
                     )
                 }
@@ -274,14 +274,14 @@ private fun SecurityHeaderCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "Protección de acceso",
+                        text = "ProtecciÃ³n de acceso",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = AppColors.Gray900
                     )
 
                     Text(
-                        text = "Controla cómo se desbloquea la aplicación.",
+                        text = "Controla cÃ³mo se desbloquea la aplicaciÃ³n.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = AppColors.Gray600
                     )
@@ -375,7 +375,7 @@ private fun SecurityMessageCard(
     message: String
 ) {
     val isSuccess = message.contains("correctamente", ignoreCase = true) ||
-        message.contains("válido", ignoreCase = true) ||
+        message.contains("vÃ¡lido", ignoreCase = true) ||
         message.contains("actualizado", ignoreCase = true)
 
     val isError = message.contains("incorrecto", ignoreCase = true) ||
@@ -418,12 +418,12 @@ private fun PinSettingsCard(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
             SectionTitle(
-                icon = "🔢",
+                icon = "ðŸ”¢",
                 title = if (hasPin) "Cambiar PIN" else "Activar PIN",
                 subtitle = if (hasPin) {
-                    "Actualiza tu PIN de acceso rápido."
+                    "Actualiza tu PIN de acceso rÃ¡pido."
                 } else {
-                    "Crea un PIN de 4 a 6 números para entrar más rápido."
+                    "Crea un PIN de 4 a 6 nÃºmeros para entrar mÃ¡s rÃ¡pido."
                 }
             )
 
@@ -513,8 +513,8 @@ private fun BiometricSettingsCard(
 
     val description = when {
         !hasPin -> "Para usar huella, primero debes activar un PIN de seguridad."
-        biometricEnabled && biometricAvailable -> "Puedes desbloquear la app usando la biometría del teléfono."
-        biometricAvailable -> "Puedes activar la huella como método rápido de acceso."
+        biometricEnabled && biometricAvailable -> "Puedes desbloquear la app usando la biometrÃ­a del telÃ©fono."
+        biometricAvailable -> "Puedes activar la huella como mÃ©todo rÃ¡pido de acceso."
         else -> biometricAvailability
     }
 
@@ -523,8 +523,8 @@ private fun BiometricSettingsCard(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
             SectionTitle(
-                icon = "👆",
-                title = "Huella / Biometría",
+                icon = "ðŸ‘†",
+                title = "Huella / BiometrÃ­a",
                 subtitle = description
             )
 
@@ -570,9 +570,9 @@ private fun AutoLockSettingsCard(
             verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
             SectionTitle(
-                icon = "⏱️",
-                title = "Bloqueo automático",
-                subtitle = "Define cuándo se bloquea la app después de estar inactiva."
+                icon = "â±ï¸",
+                title = "Bloqueo automÃ¡tico",
+                subtitle = "Define cuÃ¡ndo se bloquea la app despuÃ©s de estar inactiva."
             )
 
             SecurityStateRow(
@@ -754,3 +754,4 @@ private fun AutoLockOption(
         )
     }
 }
+

@@ -17,3 +17,4 @@ object AppDependencies {
         LocalInstallmentRepository.initialize(appContext)
     }
 }
+

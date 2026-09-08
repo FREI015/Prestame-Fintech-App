@@ -1,4 +1,4 @@
-package com.controlprestamos.features.preferences.data
+﻿package com.controlprestamos.features.preferences.data
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -27,19 +27,19 @@ enum class AppVisualScale(
 ) {
     COMPACT(
         label = "Compacta",
-        description = "Más información en pantalla."
+        description = "MÃ¡s informaciÃ³n en pantalla."
     ),
     NORMAL(
         label = "Normal",
         description = "Equilibrada para uso diario."
     ),
     COMFORTABLE(
-        label = "Cómoda",
-        description = "Más aire visual entre tarjetas."
+        label = "CÃ³moda",
+        description = "MÃ¡s aire visual entre tarjetas."
     ),
     LARGE(
         label = "Grande",
-        description = "Textos y espacios más amplios."
+        description = "Textos y espacios mÃ¡s amplios."
     )
 }
 
@@ -53,7 +53,7 @@ data class AppPreferences(
 
 object LocalPreferencesRepository {
 
-    const val DEFAULT_BUSINESS_NAME = "Control Préstamos"
+    const val DEFAULT_BUSINESS_NAME = "Control PrÃ©stamos"
     const val DEFAULT_CURRENCY_SYMBOL = "$"
     const val DEFAULT_DATE_FORMAT = "dd/MM/yyyy"
 
@@ -243,30 +243,31 @@ object LocalPreferencesRepository {
 
     private fun sanitizeVisibleText(value: String): String {
         return value
-            .replace("\u00C3\u00A1", "á")
-            .replace("\u00C3\u00A9", "é")
-            .replace("\u00C3\u00AD", "í")
-            .replace("\u00C3\u00B3", "ó")
-            .replace("\u00C3\u00BA", "ú")
-            .replace("\u00C3\u00B1", "ñ")
-            .replace("\u00C3\u00BC", "ü")
-            .replace("\u00C2\u00BF", "¿")
-            .replace("\u00C2\u00A1", "¡")
+            .replace("\u00C3\u00A1", "Ã¡")
+            .replace("\u00C3\u00A9", "Ã©")
+            .replace("\u00C3\u00AD", "Ã­")
+            .replace("\u00C3\u00B3", "Ã³")
+            .replace("\u00C3\u00BA", "Ãº")
+            .replace("\u00C3\u00B1", "Ã±")
+            .replace("\u00C3\u00BC", "Ã¼")
+            .replace("\u00C2\u00BF", "Â¿")
+            .replace("\u00C2\u00A1", "Â¡")
             .replace("\u00C2\u00A0", " ")
             .replace("\uFFFD", "")
-            .replace("Ã¡", "á")
-            .replace("Ã©", "é")
-            .replace("Ã­", "í")
-            .replace("Ã³", "ó")
-            .replace("Ãº", "ú")
-            .replace("Ã±", "ñ")
-            .replace("Ã¼", "ü")
-            .replace("Â¿", "¿")
-            .replace("Â¡", "¡")
-            .replace("Â", "")
-            .replace("ðŸ", "")
+            .replace("ÃƒÂ¡", "Ã¡")
+            .replace("ÃƒÂ©", "Ã©")
+            .replace("ÃƒÂ­", "Ã­")
+            .replace("ÃƒÂ³", "Ã³")
+            .replace("ÃƒÂº", "Ãº")
+            .replace("ÃƒÂ±", "Ã±")
+            .replace("ÃƒÂ¼", "Ã¼")
+            .replace("Ã‚Â¿", "Â¿")
+            .replace("Ã‚Â¡", "Â¡")
+            .replace("Ã‚", "")
+            .replace("Ã°Å¸", "")
             .filter { character ->
                 !character.isISOControl() || character == '\n' || character == '\t'
             }
     }
 }
+

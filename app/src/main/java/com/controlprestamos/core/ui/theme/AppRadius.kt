@@ -22,3 +22,4 @@ object AppRadius {
     val badge = pill
     val dialog = cardLarge
 }
+

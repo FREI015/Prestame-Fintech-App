@@ -557,3 +557,4 @@ private fun buildSubtitle(
         phone.ifBlank { "Sin teléfono" }
     ).joinToString(" · ")
 }
+

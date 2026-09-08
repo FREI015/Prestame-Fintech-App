@@ -8,3 +8,4 @@ data class CreatePaymentInput(
     val notes: String,
     val paymentDateMillis: Long = System.currentTimeMillis()
 )
+

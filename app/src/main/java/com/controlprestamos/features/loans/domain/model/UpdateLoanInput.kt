@@ -9,3 +9,4 @@ data class UpdateLoanInput(
     val repaymentPlanType: RepaymentPlanType = RepaymentPlanType.INSTALLMENTS,
     val startDateMillis: Long? = null
 )
+

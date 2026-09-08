@@ -19,3 +19,4 @@ interface ClientRepository {
         status: ClientStatus
     ): Boolean
 }
+

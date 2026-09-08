@@ -1042,3 +1042,4 @@ private fun formatMoney(
 ): String {
     return currencySymbol + DecimalFormat("#,##0.00").format(value)
 }
+

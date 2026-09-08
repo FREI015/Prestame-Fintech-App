@@ -1,4 +1,4 @@
-package com.controlprestamos.features.more.presentation
+﻿package com.controlprestamos.features.more.presentation
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -65,8 +65,8 @@ fun MoreScreen(
     Scaffold(
         topBar = {
             AppTopBar(
-                title = "Más",
-                subtitle = "Herramientas y configuración",
+                title = "MÃ¡s",
+                subtitle = "Herramientas y configuraciÃ³n",
                 showBack = true,
                 showMore = false,
                 showMenu = false,
@@ -94,20 +94,20 @@ fun MoreScreen(
                 MoreHeaderCard()
 
                 MoreSection(
-                    title = "Operación",
+                    title = "OperaciÃ³n",
                     subtitle = "Herramientas para revisar y controlar la cartera."
                 ) {
                     MoreOptionCard(
-                        icon = "📊",
+                        icon = "ðŸ“Š",
                         title = "Reportes",
-                        description = "Resumen de clientes, préstamos, cobros, cuotas y cartera.",
+                        description = "Resumen de clientes, prÃ©stamos, cobros, cuotas y cartera.",
                         accentColor = AppColors.AccentTeal,
                         onClick = onOpenReports
                     )
 
                     MoreOptionCard(
-                        icon = "🧾",
-                        title = "Auditoría financiera",
+                        icon = "ðŸ§¾",
+                        title = "AuditorÃ­a financiera",
                         description = "Verifica saldos, pagos activos, cuotas y posibles diferencias.",
                         accentColor = AppColors.Warning,
                         onClick = onOpenFinancialAudit
@@ -115,11 +115,11 @@ fun MoreScreen(
                 }
 
                 MoreSection(
-                    title = "Configuración",
-                    subtitle = "Ajusta cómo se comporta y se muestra la aplicación."
+                    title = "ConfiguraciÃ³n",
+                    subtitle = "Ajusta cÃ³mo se comporta y se muestra la aplicaciÃ³n."
                 ) {
                     MoreOptionCard(
-                        icon = "⚙️",
+                        icon = "âš™ï¸",
                         title = "Preferencias",
                         description = "Nombre del negocio, moneda, formato de fecha y apariencia.",
                         accentColor = AppColors.PrimaryDark,
@@ -127,9 +127,9 @@ fun MoreScreen(
                     )
 
                     MoreOptionCard(
-                        icon = "🔐",
+                        icon = "ðŸ”",
                         title = "Seguridad",
-                        description = "Administra PIN, huella y bloqueo automático de la app.",
+                        description = "Administra PIN, huella y bloqueo automÃ¡tico de la app.",
                         accentColor = AppColors.Success,
                         onClick = onOpenSecurity
                     )
@@ -137,10 +137,10 @@ fun MoreScreen(
 
                 MoreSection(
                     title = "Datos",
-                    subtitle = "Opciones para proteger y conservar tu información."
+                    subtitle = "Opciones para proteger y conservar tu informaciÃ³n."
                 ) {
                     MoreOptionCard(
-                        icon = "☁️",
+                        icon = "â˜ï¸",
                         title = "Respaldo",
                         description = "Crea o revisa una copia local para proteger los datos.",
                         accentColor = AppColors.AccentTeal,
@@ -150,33 +150,33 @@ fun MoreScreen(
 
                 MoreSection(
                     title = "Ayuda",
-                    subtitle = "Información básica para usar mejor la aplicación."
+                    subtitle = "InformaciÃ³n bÃ¡sica para usar mejor la aplicaciÃ³n."
                 ) {
                     MoreOptionCard(
-                        icon = "❔",
+                        icon = "â”",
                         title = "Ayuda operativa",
-                        description = "Guía rápida sobre clientes, préstamos, pagos y respaldos.",
+                        description = "GuÃ­a rÃ¡pida sobre clientes, prÃ©stamos, pagos y respaldos.",
                         accentColor = AppColors.PrimaryDark,
                         onClick = onOpenHelp
                     )
 
                     MoreOptionCard(
-                        icon = "ℹ️",
-                        title = "Acerca de Control Préstamos",
-                        description = "Consulta el propósito, alcance y uso recomendado de la app.",
+                        icon = "â„¹ï¸",
+                        title = "Acerca de Control PrÃ©stamos",
+                        description = "Consulta el propÃ³sito, alcance y uso recomendado de la app.",
                         accentColor = AppColors.Gray600,
                         onClick = onOpenAbout
                     )
                 }
 
                 MoreSection(
-                    title = "Sesión",
+                    title = "SesiÃ³n",
                     subtitle = "Control de acceso actual."
                 ) {
                     MoreOptionCard(
-                        icon = "↩",
-                        title = "Cerrar sesión",
-                        description = "Finaliza la sesión actual y vuelve a la pantalla de acceso.",
+                        icon = "â†©",
+                        title = "Cerrar sesiÃ³n",
+                        description = "Finaliza la sesiÃ³n actual y vuelve a la pantalla de acceso.",
                         accentColor = AppColors.Error,
                         onClick = onLogout
                     )
@@ -339,7 +339,7 @@ private fun MoreOptionCard(
             }
 
             Text(
-                text = "›",
+                text = "â€º",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = accentColor
@@ -383,3 +383,4 @@ private fun keepMoreCallbacksCompatible(
         callback.hashCode()
     }
 }
+

@@ -13,3 +13,4 @@ enum class RepaymentPlanType(
         description = "Divide el total en varias cuotas según el plazo."
     )
 }
+
